@@ -1,0 +1,129 @@
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { Home, ListChecks, Trophy, Gift, User } from "lucide-react";
+import { useRef, useState, type ReactNode } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { compressAndUploadAvatar } from "@/lib/avatar";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+const TABS = [
+  { to: "/", icon: Home, label: "Home" },
+  { to: "/predictions", icon: ListChecks, label: "Predictions" },
+  { to: "/leaderboard", icon: Trophy, label: "Leaderboard" },
+  { to: "/rewards", icon: Gift, label: "Rewards" },
+  { to: "/profile", icon: User, label: "Profile" },
+] as const;
+
+export default function AppShell({ children }: { children: ReactNode }) {
+  const { profile, refreshProfile, user } = useAuth();
+  const loc = useLocation();
+  const nav = useNavigate();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploading(true);
+    try {
+      const url = await compressAndUploadAvatar(file, user.id);
+      const { error } = await supabase
+        .from("profiles")
+        .update({ avatar_url: url })
+        .eq("id", user.id);
+      if (error) throw error;
+      await refreshProfile();
+      toast.success("Profile photo updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <header className="sticky top-0 z-30 backdrop-blur-md bg-[rgba(47,49,49,0.7)] border-b border-white/5">
+        <div className="mx-auto max-w-2xl px-4 py-3 flex items-center justify-between">
+          <button
+            onClick={() => nav({ to: "/" })}
+            className="flex items-center gap-2"
+            aria-label="Goal Gurus home"
+          >
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white"
+              style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow-primary)" }}
+            >
+              GG
+            </div>
+            <span className="text-sm font-semibold tracking-wide hidden sm:block">Goal Gurus</span>
+          </button>
+
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-white/15 bg-card shadow-md hover:border-[var(--primary-glow)] transition"
+            aria-label="Update avatar"
+          >
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="Your avatar" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-sm font-bold text-foreground/70">
+                {profile?.employee_code?.slice(0, 2) ?? "?"}
+              </div>
+            )}
+            {uploading && (
+              <span className="absolute inset-0 bg-black/60 text-[10px] text-white flex items-center justify-center">
+                …
+              </span>
+            )}
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarPick}
+          />
+        </div>
+      </header>
+
+      <main className="flex-1 mx-auto w-full max-w-2xl px-4 pb-28 pt-4">{children}</main>
+
+      <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-white/5 bg-[rgba(35,37,37,0.92)] backdrop-blur-xl">
+        <div className="mx-auto max-w-2xl grid grid-cols-5">
+          {TABS.map((t) => {
+            const active =
+              t.to === "/" ? loc.pathname === "/" : loc.pathname.startsWith(t.to);
+            const Icon = t.icon;
+            return (
+              <Link
+                key={t.to}
+                to={t.to}
+                className="flex flex-col items-center justify-center py-2.5 gap-1 text-[10px] font-semibold uppercase tracking-wider"
+                style={{ color: active ? "var(--primary-glow)" : "rgba(209,212,209,0.55)" }}
+              >
+                <span
+                  className="w-10 h-10 rounded-2xl flex items-center justify-center transition"
+                  style={
+                    active
+                      ? {
+                          background: "var(--gradient-primary)",
+                          boxShadow: "var(--shadow-glow-primary)",
+                          color: "#fff",
+                        }
+                      : undefined
+                  }
+                >
+                  <Icon size={20} />
+                </span>
+                <span>{t.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+        <div className="h-[env(safe-area-inset-bottom)]" />
+      </nav>
+    </div>
+  );
+}
