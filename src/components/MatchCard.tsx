@@ -1,4 +1,5 @@
 import Countdown from "./Countdown";
+import { flagUrl } from "@/lib/flags";
 
 export type Match = {
   id: string;
@@ -32,9 +33,9 @@ export function FeatureMatchCard({
         <Countdown to={match.match_time} />
       </div>
       <div className="flex items-center justify-between">
-        <TeamBadge name={match.home_team} flag={match.home_flag} />
+        <TeamBadge name={match.home_team} />
         <span className="text-2xl font-black text-muted-foreground">VS</span>
-        <TeamBadge name={match.away_team} flag={match.away_flag} />
+        <TeamBadge name={match.away_team} />
       </div>
       <button
         onClick={onPredict}
@@ -48,14 +49,22 @@ export function FeatureMatchCard({
   );
 }
 
-function TeamBadge({ name, flag }: { name: string; flag: string | null }) {
+function TeamBadge({ name }: { name: string }) {
   return (
     <div className="flex flex-col items-center gap-2 w-[88px]">
       <div
-        className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl"
-        style={{ background: "rgba(0,0,0,0.35)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)" }}
+        className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center"
+        style={{
+          background: "rgba(0,0,0,0.35)",
+          boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.15), 0 6px 18px -8px rgba(0,0,0,0.7)",
+        }}
       >
-        {flag ?? "⚽"}
+        <img
+          src={flagUrl(name)}
+          alt={`${name} flag`}
+          loading="lazy"
+          className="w-full h-full object-cover"
+        />
       </div>
       <span className="text-xs font-semibold text-center leading-tight">{name}</span>
     </div>
