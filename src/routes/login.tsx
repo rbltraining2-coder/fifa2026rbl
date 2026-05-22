@@ -4,7 +4,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { loginWithEmployeeCode } from "@/lib/auth.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import loginHero from "@/assets/login-hero.png";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -46,9 +45,6 @@ function LoginPage() {
     <main className="min-h-screen flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <div className="mx-auto mb-6 w-40 h-56 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.7)]">
-            <img src={loginHero} alt="Footballer entering stadium" className="w-full h-full object-cover" />
-          </div>
           <div
             className="mx-auto mb-6 inline-block px-5 py-3 rounded-2xl tilt-card"
             style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow-primary)" }}
@@ -57,27 +53,14 @@ function LoginPage() {
           </div>
           <h1
             className="text-5xl font-black tracking-tight"
+            style={{
+              backgroundImage: "linear-gradient(180deg,#fff 0%, #b8bbb8 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              textShadow: "0 4px 18px rgba(0,0,0,0.45)",
+            }}
           >
-            <span
-              style={{
-                backgroundImage: "linear-gradient(180deg,#fff 0%, #b8bbb8 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                textShadow: "0 4px 18px rgba(0,0,0,0.45)",
-              }}
-            >
-              GOAL{" "}
-            </span>
-            <span
-              style={{
-                backgroundImage: "linear-gradient(180deg,#4ade80 0%, #1f7a3a 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                textShadow: "0 4px 18px rgba(31,122,58,0.45)",
-              }}
-            >
-              GURUS
-            </span>
+            GOAL GURUS
           </h1>
           <p className="mt-2 text-sm text-muted-foreground uppercase tracking-[0.3em]">
             Football Prediction League
