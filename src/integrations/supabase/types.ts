@@ -14,7 +14,178 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      matches: {
+        Row: {
+          away_flag: string | null
+          away_score: number | null
+          away_team: string
+          created_at: string
+          home_flag: string | null
+          home_score: number | null
+          home_team: string
+          id: string
+          match_time: string
+          status: string
+        }
+        Insert: {
+          away_flag?: string | null
+          away_score?: number | null
+          away_team: string
+          created_at?: string
+          home_flag?: string | null
+          home_score?: number | null
+          home_team: string
+          id?: string
+          match_time: string
+          status?: string
+        }
+        Update: {
+          away_flag?: string | null
+          away_score?: number | null
+          away_team?: string
+          created_at?: string
+          home_flag?: string | null
+          home_score?: number | null
+          home_team?: string
+          id?: string
+          match_time?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      predictions: {
+        Row: {
+          created_at: string
+          id: string
+          match_id: string
+          points_earned: number
+          predicted_away_score: number | null
+          predicted_home_score: number | null
+          total_goals_bucket: string | null
+          updated_at: string
+          user_id: string
+          winner: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          match_id: string
+          points_earned?: number
+          predicted_away_score?: number | null
+          predicted_home_score?: number | null
+          total_goals_bucket?: string | null
+          updated_at?: string
+          user_id: string
+          winner?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          match_id?: string
+          points_earned?: number
+          predicted_away_score?: number | null
+          predicted_home_score?: number | null
+          total_goals_bucket?: string | null
+          updated_at?: string
+          user_id?: string
+          winner?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "predictions_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          employee_code: string
+          id: string
+          name: string
+          total_points: number
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          employee_code: string
+          id: string
+          name?: string
+          total_points?: number
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          employee_code?: string
+          id?: string
+          name?: string
+          total_points?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      votes: {
+        Row: {
+          created_at: string
+          id: string
+          match_id: string
+          user_id: string
+          voted_team: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          match_id: string
+          user_id: string
+          voted_team: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          match_id?: string
+          user_id?: string
+          voted_team?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "votes_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_winners: {
+        Row: {
+          created_at: string
+          id: string
+          total_points: number
+          user_id: string
+          week_number: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          total_points?: number
+          user_id: string
+          week_number: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          total_points?: number
+          user_id?: string
+          week_number?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
