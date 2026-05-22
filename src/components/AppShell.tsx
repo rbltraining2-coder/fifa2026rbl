@@ -44,7 +44,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-30 backdrop-blur-md bg-[rgba(47,49,49,0.7)] border-b border-white/5">
+      <header className="sticky top-0 z-30 backdrop-blur-xl bg-[rgba(10,18,38,0.65)] border-b border-white/5">
         <div className="mx-auto max-w-2xl px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => nav({ to: "/" })}
@@ -90,7 +90,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
       <main className="flex-1 mx-auto w-full max-w-2xl px-4 pb-28 pt-4">{children}</main>
 
-      <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-white/5 bg-[rgba(35,37,37,0.92)] backdrop-blur-xl">
+      <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-white/5 bg-[rgba(10,18,38,0.88)] backdrop-blur-xl">
         <div className="mx-auto max-w-2xl grid grid-cols-5">
           {TABS.map((t) => {
             const active =
