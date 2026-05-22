@@ -15,7 +15,7 @@ function RewardsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("weekly_winners")
-        .select("week_number, total_points, profiles!weekly_winners_user_id_fkey(name, employee_code, avatar_url)")
+        .select("week_number, total_points, profiles!weekly_winners_user_id_fkey(name, employee_code, avatar_url, brand)")
         .order("week_number", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -23,7 +23,7 @@ function RewardsPage() {
       return data as unknown as {
         week_number: number;
         total_points: number;
-        profiles: { name: string; employee_code: string; avatar_url: string | null };
+        profiles: { name: string; employee_code: string; avatar_url: string | null; brand: string | null };
       } | null;
     },
   });
@@ -50,6 +50,18 @@ function RewardsPage() {
             <p className="text-xs text-muted-foreground tracking-widest mt-1">
               {data.profiles.employee_code} · WEEK {data.week_number}
             </p>
+            {data.profiles.brand && (
+              <span
+                className="inline-block mt-3 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest"
+                style={{
+                  background: "rgba(42,57,141,0.25)",
+                  color: "var(--primary-glow)",
+                  border: "1px solid rgba(74,92,199,0.35)",
+                }}
+              >
+                {data.profiles.brand}
+              </span>
+            )}
             <div
               className="mt-5 inline-block px-6 py-3 rounded-full"
               style={{ background: "var(--gradient-success)", boxShadow: "var(--shadow-glow-success)" }}
