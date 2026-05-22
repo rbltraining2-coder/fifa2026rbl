@@ -22,7 +22,7 @@ export function FeatureMatchCard({
 }) {
   const locked = new Date(match.match_time).getTime() <= Date.now();
   return (
-    <div className="glossy-card w-[300px] shrink-0 p-5 tilt-card">
+    <div className="glossy-card w-full p-5 tilt-card">
       <div className="accent-strip" />
       <div className="flex items-center justify-between mb-4">
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
