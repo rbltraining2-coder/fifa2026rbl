@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       matches: {
         Row: {
+          api_id: string | null
           away_flag: string | null
           away_score: number | null
           away_team: string
@@ -25,9 +26,11 @@ export type Database = {
           home_team: string
           id: string
           match_time: string
+          stage_name: string | null
           status: string
         }
         Insert: {
+          api_id?: string | null
           away_flag?: string | null
           away_score?: number | null
           away_team: string
@@ -37,9 +40,11 @@ export type Database = {
           home_team: string
           id?: string
           match_time: string
+          stage_name?: string | null
           status?: string
         }
         Update: {
+          api_id?: string | null
           away_flag?: string | null
           away_score?: number | null
           away_team?: string
@@ -49,6 +54,7 @@ export type Database = {
           home_team?: string
           id?: string
           match_time?: string
+          stage_name?: string | null
           status?: string
         }
         Relationships: []
@@ -103,28 +109,34 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          brand: string | null
           created_at: string
           employee_code: string
           id: string
           name: string
+          rank: number | null
           total_points: number
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
+          brand?: string | null
           created_at?: string
           employee_code: string
           id: string
           name?: string
+          rank?: number | null
           total_points?: number
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
+          brand?: string | null
           created_at?: string
           employee_code?: string
           id?: string
           name?: string
+          rank?: number | null
           total_points?: number
           updated_at?: string
         }

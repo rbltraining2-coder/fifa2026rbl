@@ -80,6 +80,18 @@ function ProfilePage() {
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
         <h1 className="mt-3 text-xl font-black">{profile?.name || profile?.employee_code}</h1>
         <p className="text-xs text-muted-foreground tracking-widest mt-1">{profile?.employee_code}</p>
+        {profile?.brand && (
+          <span
+            className="inline-block mt-3 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest"
+            style={{
+              background: "rgba(42,57,141,0.25)",
+              color: "var(--primary-glow)",
+              border: "1px solid rgba(74,92,199,0.35)",
+            }}
+          >
+            {profile.brand}
+          </span>
+        )}
       </section>
 
       <section className="grid grid-cols-3 gap-3">
