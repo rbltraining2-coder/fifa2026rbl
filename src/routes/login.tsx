@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { loginWithEmployeeCode } from "@/lib/auth.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import loginBg from "@/assets/login-bg.png";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -42,8 +43,16 @@ function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 py-12">
-      <div className="w-full max-w-md">
+    <main
+      className="min-h-screen flex items-center justify-center px-6 py-12 relative"
+      style={{
+        backgroundImage: `linear-gradient(180deg, rgba(8,14,30,0.55) 0%, rgba(8,14,30,0.85) 100%), url(${loginBg})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-10">
           <div
             className="mx-auto mb-6 inline-block px-5 py-3 rounded-2xl tilt-card"
