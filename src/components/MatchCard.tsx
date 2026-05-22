@@ -21,18 +21,21 @@ export function FeatureMatchCard({
   onPredict: () => void;
 }) {
   const locked = new Date(match.match_time).getTime() <= Date.now();
+  const matchTimeStr = new Date(match.match_time).toLocaleString(undefined, {
+    weekday: "short", hour: "2-digit", minute: "2-digit",
+  }).toUpperCase();
   return (
     <div className="glossy-card w-full p-5 tilt-card">
       <div className="accent-strip" />
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-          {new Date(match.match_time).toLocaleString(undefined, {
-            weekday: "short", hour: "2-digit", minute: "2-digit",
-          })}
-        </span>
+      <div className="flex justify-end mb-2">
         <Countdown to={match.match_time} />
       </div>
-      <div className="flex items-center justify-between">
+      <div className="text-center mb-1">
+        <span className="text-xs font-bold" style={{ color: "#D1D4D1", letterSpacing: "0.12em" }}>
+          {matchTimeStr}
+        </span>
+      </div>
+      <div className="flex items-center justify-between mt-1">
         <TeamBadge name={match.home_team} />
         <span className="text-2xl font-black text-muted-foreground">VS</span>
         <TeamBadge name={match.away_team} />
@@ -40,7 +43,7 @@ export function FeatureMatchCard({
       <button
         onClick={onPredict}
         disabled={locked}
-        className="btn-glossy w-full mt-5"
+        className="btn-glossy w-full mt-4"
         style={locked ? { filter: "grayscale(1)", opacity: 0.6 } : undefined}
       >
         {locked ? "Locked" : "Predict Now"}
