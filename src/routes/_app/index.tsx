@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useRef, useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { FeatureMatchCard, type Match } from "@/components/MatchCard";
@@ -23,20 +23,6 @@ function greeting() {
 function HomePage() {
   const { profile } = useAuth();
   const [sheet, setSheet] = useState<Match | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [progress, setProgress] = useState(0);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const update = () => {
-      const max = el.scrollWidth - el.clientWidth;
-      setProgress(max > 0 ? (el.scrollLeft / max) * 100 : 0);
-    };
-    update();
-    el.addEventListener("scroll", update, { passive: true });
-    return () => el.removeEventListener("scroll", update);
-  }, [scrollRef.current]);
 
   const { data: matches } = useQuery({
     queryKey: ["matches"],
@@ -87,21 +73,11 @@ function HomePage() {
             No matches in the next 24 hours.
           </div>
         ) : (
-          <>
-            <div
-              ref={scrollRef}
-              className="-mx-4 px-4 overflow-x-auto flex gap-4 snap-x snap-mandatory pb-2 scrollbar-none"
-            >
-              {today.map((m) => (
-                <div key={m.id} className="snap-start">
-                  <FeatureMatchCard match={m} onPredict={() => setSheet(m)} />
-                </div>
-              ))}
-            </div>
-            <div className="carousel-progress mt-3">
-              <span style={{ width: `${Math.max(15, progress)}%` }} />
-            </div>
-          </>
+          <div className="flex flex-col gap-4">
+            {today.map((m) => (
+              <FeatureMatchCard key={m.id} match={m} onPredict={() => setSheet(m)} />
+            ))}
+          </div>
         )}
       </section>
 
