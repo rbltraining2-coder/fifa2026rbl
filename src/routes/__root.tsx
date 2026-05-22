@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import stadiumBg from "@/assets/stadium-bokeh.jpg";
 import { AuthProvider } from "@/lib/auth-context";
 import { Toaster } from "sonner";
 
@@ -116,6 +117,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <style>{`:root { --bg-stadium: url(${stadiumBg}); }`}</style>
         <Outlet />
         <Toaster theme="dark" position="top-center" richColors />
       </AuthProvider>
