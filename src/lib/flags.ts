@@ -15,6 +15,6 @@ const MAP: Record<string, string> = {
 
 export function flagUrl(team: string): string {
   const key = team.trim().toLowerCase();
-  const code = MAP[key] ?? "un";
+  const code = MAP[key] ?? "xx";
   return `https://flagcdn.com/w160/${code}.png`;
 }
