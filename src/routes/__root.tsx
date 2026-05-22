@@ -9,7 +9,6 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
-import stadiumBg from "@/assets/stadium-bokeh.jpg";
 import { AuthProvider } from "@/lib/auth-context";
 import { Toaster } from "sonner";
 
@@ -76,13 +75,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "theme-color", content: "#474A4A" },
-      { title: "Goal Gurus — Football Prediction League" },
-      { name: "description", content: "Predict matches, climb the leaderboard, win weekly trophies." },
-      { property: "og:title", content: "Goal Gurus — Football Prediction League" },
-      { property: "og:description", content: "Predict matches, climb the leaderboard, win weekly trophies." },
+      { title: "RBL FIFA 2026 Prediction League" },
+      { name: "description", content: "Predict matches, climb the leaderboard, win weekly trophies for RBL employees only" },
+      { property: "og:title", content: "RBL FIFA 2026 Prediction League" },
+      { property: "og:description", content: "Predict matches, climb the leaderboard, win weekly trophies for RBL employees only" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "RBL FIFA 2026 Prediction League" },
+      { name: "twitter:description", content: "Predict matches, climb the leaderboard, win weekly trophies for RBL employees only" },
     ],
     links: [
       {
@@ -117,7 +118,6 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <style>{`:root { --bg-stadium: url(${stadiumBg}); }`}</style>
         <Outlet />
         <Toaster theme="dark" position="top-center" richColors />
       </AuthProvider>
