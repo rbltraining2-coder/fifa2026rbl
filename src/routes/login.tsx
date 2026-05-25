@@ -75,11 +75,11 @@ function LoginPage() {
             }}
           >
             GOAL GURUS
+            <span className="sr-only"> — Football Prediction League</span>
           </h1>
           <p className="mt-2 text-sm text-muted-foreground uppercase tracking-[0.3em]">
             Football Prediction League
           </p>
-          <span className="sr-only">Goal Gurus — Football Prediction League</span>
         </div>
 
         <form onSubmit={onSubmit} className="glossy-card p-6 space-y-5">
