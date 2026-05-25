@@ -52,6 +52,17 @@ export const verifyEligibility = createServerFn({ method: "POST" })
     const dob = normalizeDob(data.dateOfBirth);
     if (!dob) throw new Error("Invalid date of birth format. Use DD/MM/YYYY.");
 
+    // Step 1: registered_users first — block if already registered.
+    const { data: existing } = await supabaseAdmin
+      .from("registered_users")
+      .select("id")
+      .eq("employee_id", code)
+      .maybeSingle();
+    if (existing) {
+      throw new Error("ALREADY_REGISTERED");
+    }
+
+    // Step 2: master roster lookup.
     const { data: emp, error } = await supabaseAdmin
       .from("eligible_employees")
       .select("employee_id, name, date_of_birth")
@@ -60,15 +71,6 @@ export const verifyEligibility = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!emp || normalizeDob(emp.date_of_birth) !== dob) {
       throw new Error("Credentials not found in corporate roster. Please contact admin.");
-    }
-
-    const { data: existing } = await supabaseAdmin
-      .from("registered_users")
-      .select("id")
-      .eq("employee_id", code)
-      .maybeSingle();
-    if (existing) {
-      throw new Error("ALREADY_REGISTERED");
     }
 
     return { employeeId: emp.employee_id, name: emp.name };
