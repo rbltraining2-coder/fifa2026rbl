@@ -61,10 +61,7 @@ function HomePage() {
       <h1 className="sr-only">Match Predictions</h1>
       <section className="glossy-card welcome-card p-5">
         <p className="text-[11px] uppercase tracking-[0.18em] font-bold text-[color:var(--success)]">
-          {greeting().toUpperCase()}, {profile?.employee_code || "GURU"}!
-        </p>
-        <p className="text-xl font-black mt-1 text-white/95">
-          {profile?.name || "Welcome back"}
+          {greeting().toUpperCase()}, {(profile?.name || "Guru").toUpperCase()}!
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
           {today.length > 0

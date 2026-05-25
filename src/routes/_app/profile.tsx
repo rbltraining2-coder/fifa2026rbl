@@ -35,7 +35,7 @@ function ProfilePage() {
       const [{ count: matches }, { count: rank }] = await Promise.all([
         supabase.from("predictions").select("*", { count: "exact", head: true }).eq("user_id", user!.id),
         supabase
-          .from("profiles")
+          .from("registered_users")
           .select("*", { count: "exact", head: true })
           .gt("total_points", profile?.total_points ?? 0),
       ]);
@@ -49,7 +49,7 @@ function ProfilePage() {
     setUploading(true);
     try {
       const url = await compressAndUploadAvatar(file, user.id);
-      await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
+      await supabase.from("registered_users").update({ avatar_url: url }).eq("id", user.id);
       await refreshProfile();
       toast.success("Photo updated");
     } catch (err) {
@@ -73,7 +73,7 @@ function ProfilePage() {
             <img src={profile.avatar_url} alt="Your avatar" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-2xl font-black">
-              {profile?.employee_code?.slice(0, 2) ?? "?"}
+              {profile?.name?.slice(0, 2).toUpperCase() ?? "?"}
             </div>
           )}
           <span
@@ -89,20 +89,7 @@ function ProfilePage() {
           )}
         </button>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
-        <p className="mt-3 text-xl font-black">{profile?.name || profile?.employee_code}</p>
-        <p className="text-xs text-muted-foreground tracking-widest mt-1">{profile?.employee_code}</p>
-        {profile?.brand && (
-          <span
-            className="inline-block mt-3 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest"
-            style={{
-              background: "rgba(42,57,141,0.25)",
-              color: "var(--primary-glow)",
-              border: "1px solid rgba(74,92,199,0.35)",
-            }}
-          >
-            {profile.brand}
-          </span>
-        )}
+        <p className="mt-3 text-xl font-black">{profile?.name}</p>
       </section>
 
       <section className="grid grid-cols-3 gap-3">
