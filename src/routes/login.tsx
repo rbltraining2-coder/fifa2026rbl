@@ -11,6 +11,7 @@ import { compressAndUploadAvatar } from "@/lib/avatar";
 import { toast } from "sonner";
 import loginBg from "@/assets/login-bg.png";
 import { Camera } from "lucide-react";
+import { DobInput } from "@/components/DobInput";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -207,16 +208,8 @@ function LoginPage() {
               </label>
               <label className="block">
                 <span className="text-xs uppercase tracking-widest text-muted-foreground">Date of Birth</span>
-                <input
-                  value={dob}
-                  onChange={(e) => setDob(e.target.value)}
-                  autoComplete="off"
-                  placeholder="DD/MM/YYYY"
-                  inputMode="numeric"
-                  className="mt-2 w-full rounded-xl bg-black/30 border border-white/10 px-4 py-3 text-lg font-mono tracking-widest text-foreground outline-none focus:border-[var(--primary-glow)]"
-                  maxLength={10}
-                />
-                <span className="mt-1 block text-[10px] text-muted-foreground/70">Format: DD/MM/YYYY or DD-MM-YY</span>
+                <DobInput value={dob} onChange={setDob} />
+                <span className="mt-1 block text-[10px] text-muted-foreground/70">Type DD/MM/YYYY or tap the calendar</span>
               </label>
               <button type="submit" disabled={busy} className="btn-glossy w-full">
                 {busy
