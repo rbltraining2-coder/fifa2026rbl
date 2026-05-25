@@ -9,7 +9,16 @@ import { flagUrl } from "@/lib/flags";
 import { Lock } from "lucide-react";
 
 export const Route = createFileRoute("/_app/")({
-  head: () => ({ meta: [{ title: "Home — Goal Gurus" }] }),
+  head: () => ({
+    meta: [
+      { title: "Match Predictions — Goal Gurus" },
+      { name: "description", content: "See today's matches and upcoming fixtures, then lock in your predictions for the RBL FIFA 2026 league." },
+      { property: "og:title", content: "Match Predictions — Goal Gurus" },
+      { property: "og:description", content: "See today's matches and upcoming fixtures, then lock in your predictions for the RBL FIFA 2026 league." },
+      { property: "og:url", content: "https://fifa2026rbl.lovable.app/" },
+    ],
+    links: [{ rel: "canonical", href: "https://fifa2026rbl.lovable.app/" }],
+  }),
   component: HomePage,
 });
 
@@ -53,9 +62,9 @@ function HomePage() {
         <p className="text-[11px] uppercase tracking-[0.18em] font-bold text-[color:var(--success)]">
           {greeting().toUpperCase()}, {profile?.employee_code || "GURU"}!
         </p>
-        <h1 className="text-xl font-black mt-1 text-white/95">
+        <p className="text-xl font-black mt-1 text-white/95">
           {profile?.name || "Welcome back"}
-        </h1>
+        </p>
         <p className="mt-2 text-sm text-muted-foreground">
           {today.length > 0
             ? `${today.length} match${today.length > 1 ? "es" : ""} kicking off soon — lock in your predictions.`
@@ -65,7 +74,7 @@ function HomePage() {
 
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-bold uppercase tracking-wider">Today's Matches</h2>
+          <h1 className="text-sm font-bold uppercase tracking-wider">Today's Matches</h1>
           <span className="text-xs text-muted-foreground">{today.length} live windows</span>
         </div>
         {today.length === 0 ? (
