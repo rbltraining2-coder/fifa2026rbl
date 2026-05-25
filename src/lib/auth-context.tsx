@@ -4,11 +4,10 @@ import type { Session, User } from "@supabase/supabase-js";
 
 type Profile = {
   id: string;
-  employee_code: string;
+  employee_id: string;
   name: string;
   avatar_url: string | null;
   total_points: number;
-  brand: string | null;
   rank: number | null;
 };
 
@@ -30,8 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadProfile = async (uid: string) => {
     const { data } = await supabase
-      .from("profiles")
-      .select("id, employee_code, name, avatar_url, total_points, brand, rank")
+      .from("registered_users")
+      .select("id, employee_id, name, avatar_url, total_points, rank")
       .eq("id", uid)
       .maybeSingle();
     setProfile((data as Profile | null) ?? null);
