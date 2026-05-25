@@ -76,19 +76,35 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "theme-color", content: "#474A4A" },
       { title: "RBL FIFA 2026 Prediction League" },
-      { name: "description", content: "Predict matches, climb the leaderboard, win weekly trophies for RBL employees only" },
-      { property: "og:title", content: "RBL FIFA 2026 Prediction League" },
-      { property: "og:description", content: "Predict matches, climb the leaderboard, win weekly trophies for RBL employees only" },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Goal Gurus" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "RBL FIFA 2026 Prediction League" },
-      { name: "twitter:description", content: "Predict matches, climb the leaderboard, win weekly trophies for RBL employees only" },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Organization",
+              name: "Goal Gurus",
+              url: "https://fifa2026rbl.lovable.app",
+            },
+            {
+              "@type": "WebSite",
+              name: "Goal Gurus — RBL FIFA 2026 Prediction League",
+              url: "https://fifa2026rbl.lovable.app",
+            },
+          ],
+        }),
       },
     ],
   }),
