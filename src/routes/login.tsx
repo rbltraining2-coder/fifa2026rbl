@@ -10,8 +10,12 @@ export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       { title: "Sign in — Goal Gurus" },
-      { name: "description", content: "Sign in to Goal Gurus with your employee code." },
+      { name: "description", content: "Sign in to the Goal Gurus RBL FIFA 2026 prediction league with your employee code and date of birth." },
+      { property: "og:title", content: "Sign in — Goal Gurus" },
+      { property: "og:description", content: "Sign in to the Goal Gurus RBL FIFA 2026 prediction league with your employee code and date of birth." },
+      { property: "og:url", content: "https://fifa2026rbl.lovable.app/login" },
     ],
+    links: [{ rel: "canonical", href: "https://fifa2026rbl.lovable.app/login" }],
   }),
   component: LoginPage,
 });
@@ -71,6 +75,7 @@ function LoginPage() {
             }}
           >
             GOAL GURUS
+            <span className="sr-only"> — Football Prediction League</span>
           </h1>
           <p className="mt-2 text-sm text-muted-foreground uppercase tracking-[0.3em]">
             Football Prediction League

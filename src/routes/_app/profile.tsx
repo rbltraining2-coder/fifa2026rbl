@@ -8,7 +8,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/profile")({
-  head: () => ({ meta: [{ title: "Profile — Goal Gurus" }] }),
+  head: () => ({
+    meta: [
+      { title: "My Profile — Goal Gurus" },
+      { name: "description", content: "View your Goal Gurus profile, total points, rank, badges and prediction history." },
+      { property: "og:title", content: "My Profile — Goal Gurus" },
+      { property: "og:description", content: "View your Goal Gurus profile, total points, rank, badges and prediction history." },
+      { property: "og:url", content: "https://fifa2026rbl.lovable.app/profile" },
+      { name: "robots", content: "noindex" },
+    ],
+    links: [{ rel: "canonical", href: "https://fifa2026rbl.lovable.app/profile" }],
+  }),
   component: ProfilePage,
 });
 
@@ -52,6 +62,7 @@ function ProfilePage() {
 
   return (
     <div className="space-y-5">
+      <h1 className="sr-only">My Profile</h1>
       <section className="glossy-card p-6 text-center">
         <div className="accent-strip" />
         <button
@@ -78,7 +89,7 @@ function ProfilePage() {
           )}
         </button>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
-        <h1 className="mt-3 text-xl font-black">{profile?.name || profile?.employee_code}</h1>
+        <p className="mt-3 text-xl font-black">{profile?.name || profile?.employee_code}</p>
         <p className="text-xs text-muted-foreground tracking-widest mt-1">{profile?.employee_code}</p>
         {profile?.brand && (
           <span

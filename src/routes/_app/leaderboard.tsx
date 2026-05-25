@@ -5,7 +5,16 @@ import { useAuth } from "@/lib/auth-context";
 import { Crown } from "lucide-react";
 
 export const Route = createFileRoute("/_app/leaderboard")({
-  head: () => ({ meta: [{ title: "Leaderboard — Goal Gurus" }] }),
+  head: () => ({
+    meta: [
+      { title: "Leaderboard — Goal Gurus" },
+      { name: "description", content: "See the top prediction performers in the RBL FIFA 2026 Goal Gurus league and where you rank." },
+      { property: "og:title", content: "Leaderboard — Goal Gurus" },
+      { property: "og:description", content: "See the top prediction performers in the RBL FIFA 2026 Goal Gurus league and where you rank." },
+      { property: "og:url", content: "https://fifa2026rbl.lovable.app/leaderboard" },
+    ],
+    links: [{ rel: "canonical", href: "https://fifa2026rbl.lovable.app/leaderboard" }],
+  }),
   component: LeaderboardPage,
 });
 
