@@ -58,6 +58,7 @@ function HomePage() {
 
   return (
     <div className="space-y-6">
+      <h1 className="sr-only">Match Predictions</h1>
       <section className="glossy-card welcome-card p-5">
         <p className="text-[11px] uppercase tracking-[0.18em] font-bold text-[color:var(--success)]">
           {greeting().toUpperCase()}, {profile?.employee_code || "GURU"}!
@@ -74,7 +75,7 @@ function HomePage() {
 
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h1 className="text-sm font-bold uppercase tracking-wider">Today's Matches</h1>
+          <h2 className="text-sm font-bold uppercase tracking-wider">Today's Matches</h2>
           <span className="text-xs text-muted-foreground">{today.length} live windows</span>
         </div>
         {today.length === 0 ? (
