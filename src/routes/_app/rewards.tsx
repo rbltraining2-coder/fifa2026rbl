@@ -5,7 +5,16 @@ import { Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/rewards")({
-  head: () => ({ meta: [{ title: "Rewards — Goal Gurus" }] }),
+  head: () => ({
+    meta: [
+      { title: "Rewards — Goal Gurus" },
+      { name: "description", content: "Meet this week's Goal Gurus prediction champion and see the trophy on the line." },
+      { property: "og:title", content: "Rewards — Goal Gurus" },
+      { property: "og:description", content: "Meet this week's Goal Gurus prediction champion and see the trophy on the line." },
+      { property: "og:url", content: "https://fifa2026rbl.lovable.app/rewards" },
+    ],
+    links: [{ rel: "canonical", href: "https://fifa2026rbl.lovable.app/rewards" }],
+  }),
   component: RewardsPage,
 });
 
