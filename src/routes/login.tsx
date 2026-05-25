@@ -18,16 +18,17 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const [code, setCode] = useState("");
+  const [dob, setDob] = useState("");
   const [busy, setBusy] = useState(false);
   const nav = useNavigate();
   const login = useServerFn(loginWithEmployeeCode);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code.trim()) return;
+    if (!code.trim() || !dob.trim()) return;
     setBusy(true);
     try {
-      const r = await login({ data: { employeeCode: code.trim() } });
+      const r = await login({ data: { employeeCode: code.trim(), dateOfBirth: dob.trim() } });
       const { error } = await supabase.auth.setSession({
         access_token: r.access_token,
         refresh_token: r.refresh_token,
@@ -90,11 +91,24 @@ function LoginPage() {
               maxLength={32}
             />
           </label>
+          <label className="block">
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">Date of Birth</span>
+            <input
+              value={dob}
+              onChange={(e) => setDob(e.target.value)}
+              autoComplete="off"
+              placeholder="DD/MM/YYYY"
+              inputMode="numeric"
+              className="mt-2 w-full rounded-xl bg-black/30 border border-white/10 px-4 py-3 text-lg font-mono tracking-widest text-foreground outline-none focus:border-[var(--primary-glow)]"
+              maxLength={10}
+            />
+            <span className="mt-1 block text-[10px] text-muted-foreground/70">Format: DD/MM/YYYY or DD-MM-YY</span>
+          </label>
           <button type="submit" disabled={busy} className="btn-glossy w-full">
             {busy ? "Signing in…" : "Login"}
           </button>
           <p className="text-xs text-center text-muted-foreground">
-            Use your corporate employee code. No password required.
+            Verify your identity with your employee code and date of birth.
           </p>
         </form>
       </div>

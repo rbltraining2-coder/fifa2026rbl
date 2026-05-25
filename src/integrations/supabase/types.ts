@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      employee_credentials: {
+        Row: {
+          created_at: string
+          date_of_birth: string
+          employee_code: string
+        }
+        Insert: {
+          created_at?: string
+          date_of_birth: string
+          employee_code: string
+        }
+        Update: {
+          created_at?: string
+          date_of_birth?: string
+          employee_code?: string
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           api_id: string | null
