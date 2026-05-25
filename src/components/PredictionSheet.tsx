@@ -98,7 +98,7 @@ export default function PredictionSheet({
                     {match.home_team} <span className="text-muted-foreground">vs</span> {match.away_team}
                   </h2>
                 </div>
-                <button onClick={onClose} className="p-2 rounded-full hover:bg-white/5">
+                <button onClick={onClose} aria-label="Close prediction sheet" className="p-2 rounded-full hover:bg-white/5">
                   <X size={18} />
                 </button>
               </div>
@@ -214,6 +214,7 @@ function Counter({
       <div className="flex items-center gap-3">
         <button
           onClick={() => onChange(Math.max(0, value - 1))}
+          aria-label={`Decrease ${label} score`}
           className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center"
         >
           <Minus size={16} />
@@ -221,6 +222,7 @@ function Counter({
         <span className="text-3xl font-black tabular-nums w-10 text-center">{value}</span>
         <button
           onClick={() => onChange(Math.min(20, value + 1))}
+          aria-label={`Increase ${label} score`}
           className="w-9 h-9 rounded-full flex items-center justify-center"
           style={{ background: "var(--gradient-success)", color: "#fff" }}
         >
