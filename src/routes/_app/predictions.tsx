@@ -9,7 +9,17 @@ import type { Match } from "@/components/MatchCard";
 import type { Prediction } from "@/lib/points";
 
 export const Route = createFileRoute("/_app/predictions")({
-  head: () => ({ meta: [{ title: "My Predictions — Goal Gurus" }] }),
+  head: () => ({
+    meta: [
+      { title: "My Predictions — Goal Gurus" },
+      { name: "description", content: "Review your upcoming, locked, and completed match predictions in the Goal Gurus league." },
+      { property: "og:title", content: "My Predictions — Goal Gurus" },
+      { property: "og:description", content: "Review your upcoming, locked, and completed match predictions in the Goal Gurus league." },
+      { property: "og:url", content: "https://fifa2026rbl.lovable.app/predictions" },
+      { name: "robots", content: "noindex" },
+    ],
+    links: [{ rel: "canonical", href: "https://fifa2026rbl.lovable.app/predictions" }],
+  }),
   component: PredictionsPage,
 });
 
