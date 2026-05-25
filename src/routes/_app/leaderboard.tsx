@@ -104,7 +104,7 @@ function LeaderboardPage() {
 function Avatar({ url, code }: { url: string | null; code: string }) {
   return (
     <div className="w-9 h-9 rounded-full overflow-hidden border border-white/10 bg-black/30 flex items-center justify-center text-[11px] font-bold">
-      {url ? <img src={url} alt="" className="w-full h-full object-cover" /> : code.slice(0, 2)}
+      {url ? <img src={url} alt="" className="w-full h-full object-cover" /> : code.slice(0, 2).toUpperCase()}
     </div>
   );
 }
@@ -122,12 +122,10 @@ function Podium({ rank, row }: { rank: 1 | 2 | 3; row: Row | undefined }) {
         {row?.avatar_url ? (
           <img src={row.avatar_url} alt="" className="w-full h-full object-cover" />
         ) : (
-          row?.employee_code?.slice(0, 2) ?? "—"
+          row?.name?.slice(0, 2).toUpperCase() ?? "—"
         )}
       </div>
-      <p className="text-xs font-bold text-center leading-tight">
-        {row?.name || row?.employee_code || "—"}
-      </p>
+      <p className="text-xs font-bold text-center leading-tight">{row?.name || "—"}</p>
       <p className="text-[11px] font-black" style={{ color: "var(--success)" }}>
         {row?.total_points ?? 0} PTS
       </p>

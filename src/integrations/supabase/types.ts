@@ -14,21 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
-      employee_credentials: {
+      eligible_employees: {
         Row: {
           created_at: string
           date_of_birth: string
-          employee_code: string
+          employee_id: string
+          name: string
         }
         Insert: {
           created_at?: string
           date_of_birth: string
-          employee_code: string
+          employee_id: string
+          name: string
         }
         Update: {
           created_at?: string
           date_of_birth?: string
-          employee_code?: string
+          employee_id?: string
+          name?: string
         }
         Relationships: []
       }
@@ -159,6 +162,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      registered_users: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          date_of_birth: string
+          employee_id: string
+          id: string
+          name: string
+          rank: number | null
+          total_points: number
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          date_of_birth: string
+          employee_id: string
+          id: string
+          name: string
+          rank?: number | null
+          total_points?: number
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          date_of_birth?: string
+          employee_id?: string
+          id?: string
+          name?: string
+          rank?: number | null
+          total_points?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registered_users_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "eligible_employees"
+            referencedColumns: ["employee_id"]
+          },
+        ]
       }
       votes: {
         Row: {

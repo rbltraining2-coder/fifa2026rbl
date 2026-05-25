@@ -28,7 +28,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
     try {
       const url = await compressAndUploadAvatar(file, user.id);
       const { error } = await supabase
-        .from("profiles")
+        .from("registered_users")
         .update({ avatar_url: url })
         .eq("id", user.id);
       if (error) throw error;
@@ -69,7 +69,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               <img src={profile.avatar_url} alt="Your avatar" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-sm font-bold text-foreground/70">
-                {profile?.employee_code?.slice(0, 2) ?? "?"}
+                {profile?.name?.slice(0, 2).toUpperCase() ?? "?"}
               </div>
             )}
             {uploading && (

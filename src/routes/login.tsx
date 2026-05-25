@@ -1,10 +1,16 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { loginWithEmployeeCode } from "@/lib/auth.functions";
+import {
+  loginWithEmployeeCode,
+  verifyEligibility,
+  completeRegistration,
+} from "@/lib/auth.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { compressAndUploadAvatar } from "@/lib/avatar";
 import { toast } from "sonner";
 import loginBg from "@/assets/login-bg.png";
+import { Camera } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -20,14 +26,34 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
+type Mode = "login" | "register";
+type Step = "creds" | "avatar";
+
 function LoginPage() {
+  const [mode, setMode] = useState<Mode>("login");
+  const [step, setStep] = useState<Step>("creds");
   const [code, setCode] = useState("");
   const [dob, setDob] = useState("");
+  const [eligibleName, setEligibleName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [alreadyOpen, setAlreadyOpen] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const nav = useNavigate();
-  const login = useServerFn(loginWithEmployeeCode);
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const login = useServerFn(loginWithEmployeeCode);
+  const verify = useServerFn(verifyEligibility);
+  const register = useServerFn(completeRegistration);
+
+  const switchMode = (m: Mode) => {
+    setMode(m);
+    setStep("creds");
+    setAvatarFile(null);
+    setAvatarPreview(null);
+  };
+
+  const onLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!code.trim() || !dob.trim()) return;
     setBusy(true);
@@ -38,10 +64,69 @@ function LoginPage() {
         refresh_token: r.refresh_token,
       });
       if (error) throw error;
-      toast.success(`Welcome, ${r.employee_code}!`);
+      toast.success("Welcome back!");
       nav({ to: "/" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sign-in failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!code.trim() || !dob.trim()) return;
+    setBusy(true);
+    try {
+      const r = await verify({ data: { employeeCode: code.trim(), dateOfBirth: dob.trim() } });
+      setEligibleName(r.name);
+      setStep("avatar");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Verification failed";
+      if (msg === "ALREADY_REGISTERED") {
+        setAlreadyOpen(true);
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onPickAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setAvatarFile(f);
+    const reader = new FileReader();
+    reader.onload = () => setAvatarPreview(reader.result as string);
+    reader.readAsDataURL(f);
+  };
+
+  const onCompleteRegister = async () => {
+    if (!avatarFile) {
+      toast.error("Please choose a profile picture");
+      return;
+    }
+    setBusy(true);
+    try {
+      const r = await register({
+        data: { employeeCode: code.trim(), dateOfBirth: dob.trim() },
+      });
+      const { error } = await supabase.auth.setSession({
+        access_token: r.access_token,
+        refresh_token: r.refresh_token,
+      });
+      if (error) throw error;
+      // Upload avatar against the freshly-created session.
+      const { data: u } = await supabase.auth.getUser();
+      if (u.user) {
+        const url = await compressAndUploadAvatar(avatarFile, u.user.id);
+        await supabase.from("registered_users").update({ avatar_url: url }).eq("id", u.user.id);
+      }
+      toast.success(`Welcome, ${eligibleName}!`);
+      nav({ to: "/" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Registration failed");
     } finally {
       setBusy(false);
     }
@@ -82,40 +167,139 @@ function LoginPage() {
           </p>
         </div>
 
-        <form onSubmit={onSubmit} className="glossy-card p-6 space-y-5">
-          <div className="accent-strip" />
-          <label className="block">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Employee Code</span>
+        {step === "creds" ? (
+          <div className="glossy-card p-6 space-y-5">
+            <div className="accent-strip" />
+            <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-black/40 border border-white/10">
+              {(["login", "register"] as Mode[]).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => switchMode(m)}
+                  className="py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition"
+                  style={
+                    mode === m
+                      ? {
+                          background: "var(--gradient-primary)",
+                          color: "#fff",
+                          boxShadow: "var(--shadow-glow-primary)",
+                        }
+                      : { color: "rgba(209,212,209,0.65)" }
+                  }
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={mode === "login" ? onLogin : onVerify} className="space-y-5">
+              <label className="block">
+                <span className="text-xs uppercase tracking-widest text-muted-foreground">Employee ID</span>
+                <input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  autoFocus
+                  autoComplete="off"
+                  placeholder="e.g. 50161635"
+                  className="mt-2 w-full rounded-xl bg-black/30 border border-white/10 px-4 py-3 text-lg font-mono tracking-widest text-foreground outline-none focus:border-[var(--primary-glow)]"
+                  maxLength={32}
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs uppercase tracking-widest text-muted-foreground">Date of Birth</span>
+                <input
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                  autoComplete="off"
+                  placeholder="DD/MM/YYYY"
+                  inputMode="numeric"
+                  className="mt-2 w-full rounded-xl bg-black/30 border border-white/10 px-4 py-3 text-lg font-mono tracking-widest text-foreground outline-none focus:border-[var(--primary-glow)]"
+                  maxLength={10}
+                />
+                <span className="mt-1 block text-[10px] text-muted-foreground/70">Format: DD/MM/YYYY or DD-MM-YY</span>
+              </label>
+              <button type="submit" disabled={busy} className="btn-glossy w-full">
+                {busy
+                  ? mode === "login" ? "Signing in…" : "Checking…"
+                  : mode === "login" ? "Login" : "Next"}
+              </button>
+              <p className="text-xs text-center text-muted-foreground">
+                {mode === "login"
+                  ? "Use your employee ID and date of birth to sign in."
+                  : "New here? We'll verify you against the corporate roster."}
+              </p>
+            </form>
+          </div>
+        ) : (
+          <div className="glossy-card p-6 space-y-5 text-center">
+            <div className="accent-strip" />
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">Step 2 of 2</p>
+            <h2 className="text-xl font-black">Upload Your Profile Picture</h2>
+            <p className="text-sm text-muted-foreground">
+              Welcome, <span className="text-white font-semibold">{eligibleName}</span>. Pick a photo —
+              it'll be cropped and compressed automatically.
+            </p>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="relative mx-auto block w-32 h-32 rounded-full overflow-hidden border-4 border-white/15 bg-black/40"
+            >
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="Selected avatar preview" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-3xl font-black text-white/40">
+                  {eligibleName.slice(0, 2).toUpperCase()}
+                </div>
+              )}
+              <span
+                className="absolute bottom-1 right-1 w-9 h-9 rounded-full flex items-center justify-center text-white"
+                style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow-primary)" }}
+              >
+                <Camera size={16} />
+              </span>
+            </button>
             <input
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              autoFocus
-              autoComplete="off"
-              placeholder="e.g. EMP1024"
-              className="mt-2 w-full rounded-xl bg-black/30 border border-white/10 px-4 py-3 text-lg font-mono tracking-widest text-foreground outline-none focus:border-[var(--primary-glow)]"
-              maxLength={32}
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onPickAvatar}
             />
-          </label>
-          <label className="block">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Date of Birth</span>
-            <input
-              value={dob}
-              onChange={(e) => setDob(e.target.value)}
-              autoComplete="off"
-              placeholder="DD/MM/YYYY"
-              inputMode="numeric"
-              className="mt-2 w-full rounded-xl bg-black/30 border border-white/10 px-4 py-3 text-lg font-mono tracking-widest text-foreground outline-none focus:border-[var(--primary-glow)]"
-              maxLength={10}
-            />
-            <span className="mt-1 block text-[10px] text-muted-foreground/70">Format: DD/MM/YYYY or DD-MM-YY</span>
-          </label>
-          <button type="submit" disabled={busy} className="btn-glossy w-full">
-            {busy ? "Signing in…" : "Login"}
-          </button>
-          <p className="text-xs text-center text-muted-foreground">
-            Verify your identity with your employee code and date of birth.
-          </p>
-        </form>
+            <button
+              type="button"
+              onClick={onCompleteRegister}
+              disabled={busy || !avatarFile}
+              className="btn-glossy w-full disabled:opacity-50"
+            >
+              {busy ? "Completing…" : "Submit & Complete Registration"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setStep("creds"); setAvatarFile(null); setAvatarPreview(null); }}
+              className="text-xs text-muted-foreground underline"
+            >
+              ← Back
+            </button>
+          </div>
+        )}
+
+        {alreadyOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-6">
+            <div className="glossy-card p-6 max-w-sm w-full text-center space-y-4">
+              <div className="accent-strip" />
+              <h3 className="text-lg font-black">Already Registered</h3>
+              <p className="text-sm text-muted-foreground">
+                This employee ID already has a profile. Please switch to <b>Login</b> to continue.
+              </p>
+              <button
+                onClick={() => { setAlreadyOpen(false); switchMode("login"); }}
+                className="btn-glossy w-full"
+              >
+                Go to Login
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
