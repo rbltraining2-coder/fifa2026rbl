@@ -35,7 +35,7 @@ export default function ResultBreakdown({
             initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
           >
             <div className="glossy-card max-w-sm w-full p-6 relative">
-              <button onClick={onClose} className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/10">
+              <button onClick={onClose} aria-label="Close result breakdown" className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/10">
                 <X size={16} />
               </button>
               <p className="text-xs uppercase tracking-widest text-muted-foreground text-center">Final Result</p>
