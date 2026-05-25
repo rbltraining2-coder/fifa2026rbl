@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
@@ -17,6 +18,11 @@ import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppPredictionsRouteImport } from './routes/_app/predictions'
 import { Route as AppLeaderboardRouteImport } from './routes/_app/leaderboard'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -55,6 +61,7 @@ const AppLeaderboardRoute = AppLeaderboardRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/leaderboard': typeof AppLeaderboardRoute
   '/predictions': typeof AppPredictionsRoute
   '/profile': typeof AppProfileRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/leaderboard': typeof AppLeaderboardRoute
   '/predictions': typeof AppPredictionsRoute
   '/profile': typeof AppProfileRoute
@@ -72,6 +80,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_app/leaderboard': typeof AppLeaderboardRoute
   '/_app/predictions': typeof AppPredictionsRoute
   '/_app/profile': typeof AppProfileRoute
@@ -83,16 +92,25 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/sitemap.xml'
     | '/leaderboard'
     | '/predictions'
     | '/profile'
     | '/rewards'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/leaderboard' | '/predictions' | '/profile' | '/rewards' | '/'
+  to:
+    | '/login'
+    | '/sitemap.xml'
+    | '/leaderboard'
+    | '/predictions'
+    | '/profile'
+    | '/rewards'
+    | '/'
   id:
     | '__root__'
     | '/_app'
     | '/login'
+    | '/sitemap.xml'
     | '/_app/leaderboard'
     | '/_app/predictions'
     | '/_app/profile'
@@ -103,10 +121,18 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -180,7 +206,18 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

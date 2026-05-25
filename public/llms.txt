@@ -1,0 +1,9 @@
+# Goal Gurus
+
+> Goal Gurus is the RBL FIFA 2026 corporate prediction league — employees predict match outcomes, climb a weekly leaderboard, and win trophies.
+
+## Pages
+
+- [Home](/): Overview of upcoming and today's matches.
+- [Leaderboard](/leaderboard): Top performers across the league.
+- [Rewards](/rewards): This week's prediction champion.

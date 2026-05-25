@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://fifa2026rbl.lovable.app/sitemap.xml
