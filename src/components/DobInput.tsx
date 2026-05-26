@@ -10,6 +10,7 @@ type Props = {
 // (dark-themed via color-scheme) through a calendar icon trigger.
 export function DobInput({ value, onChange }: Props) {
   const dateRef = useRef<HTMLInputElement>(null);
+  const textRef = useRef<HTMLInputElement>(null);
   const [iso, setIso] = useState<string>("");
 
   const handleText = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,8 +58,14 @@ export function DobInput({ value, onChange }: Props) {
   };
 
   return (
-    <div className="relative mt-2">
+    <div className="relative mt-2" onClick={() => {
+        // Default click anywhere in the field opens the picker when the
+        // value is empty, but lets the user keep typing once digits exist.
+        if (!value) openPicker();
+      }}
+    >
       <input
+        ref={textRef}
         value={value}
         onChange={handleText}
         autoComplete="off"
@@ -76,9 +83,9 @@ export function DobInput({ value, onChange }: Props) {
       >
         <CalendarIcon size={16} />
       </button>
-      {/* Native date picker overlays the calendar icon; clicking it
+      {/* Native date picker overlays the calendar icon area; clicking it
           opens the dark-themed system date picker reliably even when
-          showPicker() is blocked. */}
+          showPicker() is blocked by the browser. */}
       <input
         ref={dateRef}
         type="date"
