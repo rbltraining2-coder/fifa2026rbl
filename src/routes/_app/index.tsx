@@ -5,8 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { FeatureMatchCard, type Match } from "@/components/MatchCard";
 import PredictionSheet from "@/components/PredictionSheet";
-import { flagUrl } from "@/lib/flags";
-import { FALLBACK_FLAG } from "@/lib/flags";
+import { flagUrl, FALLBACK_FLAG } from "@/lib/flags";
 import { Lock } from "lucide-react";
 import { getPredictionWindow } from "@/lib/predictionWindow";
 
