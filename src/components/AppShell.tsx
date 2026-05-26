@@ -28,11 +28,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
     setUploading(true);
     try {
       const url = await compressAndUploadAvatar(file, user.id);
-      const { error } = await supabase
-        .from("registered_users")
-        .update({ avatar_url: url })
-        .eq("id", user.id);
-      if (error) throw error;
+      const { updateMyAvatar } = await import("@/lib/predictions.functions");
+      await updateMyAvatar({ data: { userId: user.id, avatarUrl: url } });
       await refreshProfile();
       toast.success("Profile photo updated");
     } catch (err) {
