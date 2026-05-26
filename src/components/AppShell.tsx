@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { compressAndUploadAvatar } from "@/lib/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import BrandHeader from "@/components/BrandHeader";
 
 const TABS = [
   { to: "/", icon: Home, label: "Home" },
@@ -49,15 +50,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
           <button
             onClick={() => nav({ to: "/" })}
             className="flex items-center gap-2"
-            aria-label="Goal Gurus home"
+            aria-label="RBL FIFA 2026 League home"
           >
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white"
-              style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow-primary)" }}
-            >
-              GG
-            </div>
-            <span className="text-sm font-semibold tracking-wide hidden sm:block">Goal Gurus</span>
+            <BrandHeader size={32} textClass="text-[12px] sm:text-sm" />
           </button>
 
           <div className="flex items-center gap-2">
