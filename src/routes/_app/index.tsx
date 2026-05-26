@@ -5,8 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { FeatureMatchCard, type Match } from "@/components/MatchCard";
 import PredictionSheet from "@/components/PredictionSheet";
-import { flagUrl } from "@/lib/flags";
+import { flagUrl, FALLBACK_FLAG } from "@/lib/flags";
 import { Lock } from "lucide-react";
+import { getPredictionWindow } from "@/lib/predictionWindow";
 
 export const Route = createFileRoute("/_app/")({
   head: () => ({
@@ -92,11 +93,11 @@ function HomePage() {
         <h2 className="text-sm font-bold uppercase tracking-wider mb-3">Upcoming Fixtures</h2>
         <ul className="space-y-2">
           {upcoming.map((m) => {
-            const locked = new Date(m.match_time).getTime() <= now;
+            const w = getPredictionWindow(m.match_time, now);
             return (
               <li
                 key={m.id}
-                onClick={() => !locked && setSheet(m)}
+                onClick={() => w.canPredict && setSheet(m)}
                 className="glossy-card px-4 py-3 flex items-center justify-between cursor-pointer hover:translate-y-[-1px] transition"
               >
                 <div className="flex items-center gap-3">
@@ -106,12 +107,14 @@ function HomePage() {
                       alt={`${m.home_team} flag`}
                       className="w-8 h-8 rounded-full object-cover ring-2 ring-[color:var(--card)]"
                       loading="lazy"
+                      onError={(e) => { const el = e.currentTarget; if (el.src !== FALLBACK_FLAG) el.src = FALLBACK_FLAG; }}
                     />
                     <img
                       src={flagUrl(m.away_team)}
                       alt={`${m.away_team} flag`}
                       className="w-8 h-8 rounded-full object-cover ring-2 ring-[color:var(--card)]"
                       loading="lazy"
+                      onError={(e) => { const el = e.currentTarget; if (el.src !== FALLBACK_FLAG) el.src = FALLBACK_FLAG; }}
                     />
                   </div>
                   <div>
@@ -125,7 +128,12 @@ function HomePage() {
                     </p>
                   </div>
                 </div>
-                {locked && <Lock size={16} className="text-[var(--destructive)]" />}
+                {w.state === "locked" && <Lock size={16} className="text-[var(--destructive)]" />}
+                {w.state === "early" && (
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Opens 24h before
+                  </span>
+                )}
               </li>
             );
           })}

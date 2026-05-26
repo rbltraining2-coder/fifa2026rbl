@@ -57,7 +57,12 @@ export function DobInput({ value, onChange }: Props) {
   };
 
   return (
-    <div className="relative mt-2">
+    <div className="relative mt-2" onClick={() => {
+        // Default click anywhere in the field opens the picker when the
+        // value is empty, but lets the user keep typing once digits exist.
+        if (!value) openPicker();
+      }}
+    >
       <input
         value={value}
         onChange={handleText}
@@ -76,9 +81,9 @@ export function DobInput({ value, onChange }: Props) {
       >
         <CalendarIcon size={16} />
       </button>
-      {/* Native date picker overlays the calendar icon; clicking it
+      {/* Native date picker overlays the calendar icon area; clicking it
           opens the dark-themed system date picker reliably even when
-          showPicker() is blocked. */}
+          showPicker() is blocked by the browser. */}
       <input
         ref={dateRef}
         type="date"

@@ -1,5 +1,6 @@
 import Countdown from "./Countdown";
-import { flagUrl } from "@/lib/flags";
+import { flagUrl, FALLBACK_FLAG } from "@/lib/flags";
+import { getPredictionWindow } from "@/lib/predictionWindow";
 
 export type Match = {
   id: string;
@@ -20,7 +21,7 @@ export function FeatureMatchCard({
   match: Match;
   onPredict: () => void;
 }) {
-  const locked = new Date(match.match_time).getTime() <= Date.now();
+  const w = getPredictionWindow(match.match_time);
   const matchTimeStr = new Date(match.match_time).toLocaleString(undefined, {
     weekday: "short", hour: "2-digit", minute: "2-digit",
   }).toUpperCase();
@@ -42,12 +43,17 @@ export function FeatureMatchCard({
       </div>
       <button
         onClick={onPredict}
-        disabled={locked}
+        disabled={!w.canPredict}
         className="btn-glossy w-full mt-4"
-        style={locked ? { filter: "grayscale(1)", opacity: 0.6 } : undefined}
+        style={!w.canPredict ? { filter: "grayscale(1)", opacity: 0.6 } : undefined}
       >
-        {locked ? "Locked" : "Predict Now"}
+        {w.state === "locked" ? "Locked" : w.state === "early" ? "Opens 24h before" : "Predict Now"}
       </button>
+      {w.state === "early" && (
+        <p className="mt-2 text-[11px] text-center text-muted-foreground">
+          {w.label}
+        </p>
+      )}
     </div>
   );
 }
@@ -66,6 +72,10 @@ function TeamBadge({ name }: { name: string }) {
           src={flagUrl(name)}
           alt={`${name} flag`}
           loading="lazy"
+          onError={(e) => {
+            const el = e.currentTarget;
+            if (el.src !== FALLBACK_FLAG) el.src = FALLBACK_FLAG;
+          }}
           className="w-full h-full object-cover"
         />
       </div>
