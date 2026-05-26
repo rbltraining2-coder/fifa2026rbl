@@ -7,7 +7,7 @@ import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Download, Trash2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import { importMatches, wipeMatches } from "@/lib/admin.functions";
+import { importMatches, wipeMatches, importEligibleEmployees } from "@/lib/admin.functions";
 
 const ADMIN_EMPLOYEE_ID = "50161635";
 
@@ -15,6 +15,10 @@ const CSV_TEMPLATE =
   "home_team,away_team,match_time,stage_name\n" +
   "Brazil,Argentina,2026-06-11T18:00:00Z,Group Stage\n" +
   "France,Germany,2026-06-11T21:00:00Z,Group Stage\n";
+
+const USERS_CSV_TEMPLATE =
+  "employee_id,date_of_birth,name\n" +
+  "99999999,01/01/1990,John Doe\n";
 
 export const Route = createFileRoute("/_app/admin")({
   head: () => ({ meta: [{ title: "Admin Dashboard — Goal Gurus" }] }),
@@ -56,12 +60,17 @@ function AdminPage() {
   const queryClient = useQueryClient();
   const importFn = useServerFn(importMatches);
   const wipeFn = useServerFn(wipeMatches);
+  const importUsersFn = useServerFn(importEligibleEmployees);
   const [rows, setRows] = useState<Row[]>([]);
   const [filename, setFilename] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [wiping, setWiping] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [tab, setTab] = useState<"matches" | "users">("matches");
+  const [userBusy, setUserBusy] = useState(false);
+  const [userDragOver, setUserDragOver] = useState(false);
+  const userInputRef = useRef<HTMLInputElement>(null);
 
   // Hard guard: ONLY employee 50161635 may see this view.
   if (loading) {
@@ -173,18 +182,98 @@ function AdminPage() {
 
   const preview = useMemo(() => rows.slice(0, 6), [rows]);
 
+  const downloadUsersTemplate = () => {
+    const blob = new Blob([USERS_CSV_TEMPLATE], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "eligible_employees_template.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleUsersFile = async (file: File) => {
+    if (!profile) return;
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    setUserBusy(true);
+    try {
+      let raw: Record<string, unknown>[] = [];
+      if (ext === "csv" || file.type === "text/csv") {
+        const text = await file.text();
+        raw = Papa.parse<Record<string, unknown>>(text, {
+          header: true,
+          skipEmptyLines: true,
+        }).data;
+      } else {
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: "array" });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
+      }
+      const employees = raw
+        .map((r) => {
+          const keys = Object.keys(r);
+          const get = (name: string, idx: number) => {
+            const k = keys.find((x) => x.toLowerCase().replace(/\s+/g, "_") === name);
+            const v = k ? r[k] : r[keys[idx]];
+            return v == null ? "" : String(v).trim();
+          };
+          return {
+            employee_id: get("employee_id", 0),
+            date_of_birth: get("date_of_birth", 1),
+            name: get("name", 2),
+          };
+        })
+        .filter((e) => e.employee_id && e.date_of_birth && e.name);
+      if (employees.length === 0) {
+        toast.error("No valid rows. Expected columns: employee_id, date_of_birth, name.");
+        return;
+      }
+      const r = await importUsersFn({
+        data: { adminEmployeeId: profile.employee_id, employees },
+      });
+      toast.success(`Successfully added ${r.inserted} eligible employees to the master roster!`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "User import failed");
+    } finally {
+      setUserBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <header>
         <p className="text-[11px] uppercase tracking-[0.18em] font-bold text-[color:var(--primary-glow)]">
           Admin Console
         </p>
-        <h1 className="text-2xl font-black mt-1">FIFA 2026 Timetable Importer</h1>
+        <h1 className="text-2xl font-black mt-1">Admin Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Upload an Excel or CSV file with the official schedule. Existing matches will be replaced.
+          Manage the FIFA 2026 timetable and the corporate master roster of eligible players.
         </p>
       </header>
 
+      <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-black/40 border border-white/10 max-w-md">
+        {(["matches", "users"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className="py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition"
+            style={
+              tab === t
+                ? { background: "var(--gradient-primary)", color: "#fff", boxShadow: "var(--shadow-glow-primary)" }
+                : { color: "rgba(209,212,209,0.65)" }
+            }
+          >
+            {t === "matches" ? "Match Schedule" : "User Management"}
+          </button>
+        ))}
+      </div>
+
+      {tab === "matches" && (
+        <>
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
@@ -295,6 +384,65 @@ function AdminPage() {
             {busy ? "Synchronizing…" : "Process and Synchronize Timetable"}
           </button>
         </section>
+      )}
+        </>
+      )}
+
+      {tab === "users" && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={downloadUsersTemplate}
+              className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--primary-glow)] underline-offset-4 hover:underline"
+            >
+              <Download size={14} />
+              Download User CSV Template File
+            </button>
+          </div>
+          <section
+            onDragOver={(e) => { e.preventDefault(); setUserDragOver(true); }}
+            onDragLeave={() => setUserDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setUserDragOver(false);
+              const f = e.dataTransfer.files?.[0];
+              if (f) handleUsersFile(f);
+            }}
+            onClick={() => userInputRef.current?.click()}
+            className={`glossy-card p-8 text-center cursor-pointer border-2 border-dashed transition ${
+              userDragOver ? "border-[var(--primary-glow)] bg-white/5" : "border-white/15"
+            }`}
+          >
+            <div
+              className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
+              style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow-primary)" }}
+            >
+              <Upload className="text-white" size={22} />
+            </div>
+            <p className="text-sm font-bold uppercase tracking-wider">
+              {userBusy ? "Importing…" : "Upload Master Roster (CSV Format)"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Columns: employee_id, date_of_birth (DD/MM/YYYY), name.
+            </p>
+            <input
+              ref={userInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleUsersFile(f);
+                e.currentTarget.value = "";
+              }}
+            />
+          </section>
+          <div className="flex items-center gap-2 text-xs text-amber-400/90">
+            <AlertTriangle size={14} />
+            Existing roster rows with the same employee_id will be replaced.
+          </div>
+        </div>
       )}
     </div>
   );
