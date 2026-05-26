@@ -164,7 +164,7 @@ export const loginWithEmployeeCode = createServerFn({ method: "POST" })
     if (regErr) throw new Error(regErr.message);
     if (!reg) throw new Error("Profile not found. Please register first.");
     if (normalizeDob(reg.date_of_birth) !== dob) {
-      throw new Error("Invalid Employee Code or Date of Birth.");
+      throw new Error("Profile not found. Please register first.");
     }
 
     const email = `${code.toLowerCase()}@goalgurus.local`;
