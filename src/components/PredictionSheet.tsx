@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { getPredictionWindow } from "@/lib/predictionWindow";
 
 type Winner = "home" | "draw" | "away";
 type Bucket = "under_2_5" | "between_2_3" | "over_3_5";
@@ -45,6 +46,15 @@ export default function PredictionSheet({
 
   const save = async () => {
     if (!match || !user) return;
+    const w = getPredictionWindow(match.match_time);
+    if (!w.canPredict) {
+      toast.error(
+        w.state === "locked"
+          ? "Predictions are locked — kick-off is within 30 minutes."
+          : "Prediction window opens 24 hours before kick-off.",
+      );
+      return;
+    }
     setSaving(true);
     const { error } = await supabase
       .from("predictions")
