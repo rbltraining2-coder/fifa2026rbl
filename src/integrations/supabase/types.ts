@@ -170,6 +170,7 @@ export type Database = {
           date_of_birth: string
           employee_id: string
           id: string
+          is_admin: boolean
           name: string
           rank: number | null
           total_points: number
@@ -181,6 +182,7 @@ export type Database = {
           date_of_birth: string
           employee_id: string
           id?: string
+          is_admin?: boolean
           name: string
           rank?: number | null
           total_points?: number
@@ -192,6 +194,7 @@ export type Database = {
           date_of_birth?: string
           employee_id?: string
           id?: string
+          is_admin?: boolean
           name?: string
           rank?: number | null
           total_points?: number
