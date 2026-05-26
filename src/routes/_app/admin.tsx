@@ -5,9 +5,16 @@ import { useQueryClient } from "@tanstack/react-query";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Download, Trash2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import { importMatches } from "@/lib/admin.functions";
+import { importMatches, wipeMatches } from "@/lib/admin.functions";
+
+const ADMIN_EMPLOYEE_ID = "50161635";
+
+const CSV_TEMPLATE =
+  "home_team,away_team,match_time,stage_name\n" +
+  "Brazil,Argentina,2026-06-11T18:00:00Z,Group Stage\n" +
+  "France,Germany,2026-06-11T21:00:00Z,Group Stage\n";
 
 export const Route = createFileRoute("/_app/admin")({
   head: () => ({ meta: [{ title: "Admin Dashboard — Goal Gurus" }] }),
@@ -44,20 +51,36 @@ function normalizeRows(raw: Record<string, unknown>[]): Row[] {
 }
 
 function AdminPage() {
-  const { profile } = useAuth();
+  const { profile, loading } = useAuth();
   const nav = useNavigate();
   const queryClient = useQueryClient();
   const importFn = useServerFn(importMatches);
+  const wipeFn = useServerFn(wipeMatches);
   const [rows, setRows] = useState<Row[]>([]);
   const [filename, setFilename] = useState<string>("");
   const [busy, setBusy] = useState(false);
+  const [wiping, setWiping] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Guard: only admin allowed.
-  if (profile && !profile.is_admin) {
-    nav({ to: "/" });
-    return null;
+  // Hard guard: ONLY employee 50161635 may see this view.
+  if (loading) {
+    return <div className="text-sm text-muted-foreground">Loading…</div>;
+  }
+  if (!profile || profile.employee_id !== ADMIN_EMPLOYEE_ID) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center gap-3">
+        <p className="text-6xl font-black tracking-tight">404</p>
+        <p className="text-sm text-muted-foreground">This page does not exist.</p>
+        <button
+          onClick={() => nav({ to: "/" })}
+          className="mt-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider"
+          style={{ background: "var(--gradient-primary)", color: "#fff" }}
+        >
+          Back to Home
+        </button>
+      </div>
+    );
   }
 
   const handleFile = useCallback(async (file: File) => {
@@ -116,6 +139,38 @@ function AdminPage() {
     }
   };
 
+  const downloadTemplate = () => {
+    const blob = new Blob([CSV_TEMPLATE], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "fifa_2026_schedule_template.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const wipeAll = async () => {
+    if (!profile) return;
+    const ok = window.confirm(
+      "Are you sure you want to wipe all schedule data? This will clear all visible matches for your users.",
+    );
+    if (!ok) return;
+    setWiping(true);
+    try {
+      const r = await wipeFn({ data: { adminEmployeeId: profile.employee_id } });
+      toast.success(`Cleared ${r.deleted} matches.`);
+      setRows([]);
+      setFilename("");
+      await queryClient.invalidateQueries({ queryKey: ["matches"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Wipe failed");
+    } finally {
+      setWiping(false);
+    }
+  };
+
   const preview = useMemo(() => rows.slice(0, 6), [rows]);
 
   return (
@@ -129,6 +184,26 @@ function AdminPage() {
           Upload an Excel or CSV file with the official schedule. Existing matches will be replaced.
         </p>
       </header>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={downloadTemplate}
+          className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--primary-glow)] underline-offset-4 hover:underline"
+        >
+          <Download size={14} />
+          Download CSV Template File
+        </button>
+        <button
+          type="button"
+          onClick={wipeAll}
+          disabled={wiping}
+          className="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider border border-red-500/40 text-red-300 hover:bg-red-500/10 disabled:opacity-60"
+        >
+          <Trash2 size={14} />
+          {wiping ? "Clearing…" : "Clear All Matches Data"}
+        </button>
+      </div>
 
       <section
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
