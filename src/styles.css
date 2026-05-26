@@ -97,7 +97,7 @@
   --gradient-primary: linear-gradient(135deg, #1E5631 0%, #2E7D46 100%);
   --gradient-success: linear-gradient(135deg, #1E5631 0%, #2E7D46 100%);
   --gradient-card: linear-gradient(145deg, rgba(22,31,48,0.92) 0%, rgba(11,15,25,0.92) 100%);
-  --gradient-promo: linear-gradient(135deg, #4B1F8F 0%, #6E3CBC 55%, #25354E 100%);
+  --gradient-promo: linear-gradient(135deg, #2D124D 0%, #3A1A66 55%, #1A0633 100%);
   --gradient-podium-gold: linear-gradient(180deg, #f5d76e 0%, #c49a2a 100%);
   --gradient-podium-silver: linear-gradient(180deg, #e6e8eb 0%, #8b9097 100%);
   --gradient-podium-bronze: linear-gradient(180deg, #d49a6a 0%, #8a5a2a 100%);
