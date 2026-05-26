@@ -412,6 +412,67 @@ function AdminPage() {
 
       {tab === "users" && (
         <div className="space-y-4">
+          {/* Manual add */}
+          <section className="glossy-card p-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <UserPlus size={16} className="text-[var(--primary)]" />
+              <h3 className="text-sm font-bold uppercase tracking-wider">Add Single Employee</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <input
+                value={manual.employee_id}
+                onChange={(e) => setManual((m) => ({ ...m, employee_id: e.target.value }))}
+                placeholder="Employee ID"
+                className="rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[var(--primary)] outline-none"
+              />
+              <input
+                value={manual.name}
+                onChange={(e) => setManual((m) => ({ ...m, name: e.target.value }))}
+                placeholder="Full Name"
+                className="rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[var(--primary)] outline-none"
+              />
+              <input
+                value={manual.date_of_birth}
+                onChange={(e) => setManual((m) => ({ ...m, date_of_birth: e.target.value }))}
+                placeholder="DOB (DD/MM/YYYY)"
+                className="rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[var(--primary)] outline-none"
+              />
+            </div>
+            <button
+              type="button"
+              disabled={adding || !manual.employee_id || !manual.name || !manual.date_of_birth}
+              onClick={async () => {
+                if (!profile) return;
+                setAdding(true);
+                try {
+                  await addUserFn({
+                    data: {
+                      adminEmployeeId: profile.employee_id,
+                      ...manual,
+                    },
+                  });
+                  toast.success(`Added ${manual.name} to the master roster.`);
+                  setManual({ employee_id: "", name: "", date_of_birth: "" });
+                  await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Add failed");
+                } finally {
+                  setAdding(false);
+                }
+              }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider disabled:opacity-60"
+              style={{
+                background: "var(--gradient-primary)",
+                color: "var(--primary-foreground)",
+                boxShadow: "var(--shadow-glow-primary)",
+              }}
+            >
+              <UserPlus size={14} />
+              {adding ? "Adding…" : "+ Add Employee Manually"}
+            </button>
+          </section>
+
+          {/* Bulk CSV upload (unchanged) */}
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
@@ -464,8 +525,157 @@ function AdminPage() {
             <AlertTriangle size={14} />
             Existing roster rows with the same employee_id will be replaced.
           </div>
+
+          {/* Searchable directory */}
+          <section className="glossy-card p-5 space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <h3 className="text-sm font-bold uppercase tracking-wider">Corporate Roster Directory</h3>
+              <div className="flex-1" />
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+                  placeholder="Search name or Employee ID"
+                  className="rounded-lg pl-9 pr-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[var(--primary)] outline-none w-64 max-w-full"
+                />
+              </div>
+            </div>
+            <UserDirectory
+              users={usersQuery.data?.users ?? []}
+              loading={usersQuery.isLoading}
+              search={search}
+              page={page}
+              pageSize={PAGE_SIZE}
+              setPage={setPage}
+              onDelete={async (id, name) => {
+                if (!profile) return;
+                const ok = window.confirm(
+                  `Are you sure you want to completely erase ${name} (${id}) from the system?`,
+                );
+                if (!ok) return;
+                try {
+                  await deleteUserFn({
+                    data: { adminEmployeeId: profile.employee_id, employee_id: id },
+                  });
+                  toast.success(`Deleted ${name}.`);
+                  await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Delete failed");
+                }
+              }}
+            />
+          </section>
         </div>
       )}
     </div>
+  );
+}
+
+function UserDirectory({
+  users,
+  loading,
+  search,
+  page,
+  pageSize,
+  setPage,
+  onDelete,
+}: {
+  users: { employee_id: string; name: string; date_of_birth: string; registered: boolean }[];
+  loading: boolean;
+  search: string;
+  page: number;
+  pageSize: number;
+  setPage: (n: number) => void;
+  onDelete: (id: string, name: string) => void;
+}) {
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter(
+      (u) =>
+        u.name.toLowerCase().includes(q) ||
+        u.employee_id.toLowerCase().includes(q),
+    );
+  }, [users, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const pageRows = filtered.slice(page * pageSize, page * pageSize + pageSize);
+
+  if (loading) {
+    return <p className="text-sm text-muted-foreground">Loading roster…</p>;
+  }
+
+  return (
+    <>
+      <div className="overflow-x-auto rounded-lg border border-white/10">
+        <table className="w-full text-xs">
+          <thead className="bg-white/5 text-muted-foreground uppercase tracking-wider">
+            <tr>
+              <th className="text-left px-3 py-2">Employee ID</th>
+              <th className="text-left px-3 py-2">Name</th>
+              <th className="text-left px-3 py-2">DOB</th>
+              <th className="text-left px-3 py-2">Status</th>
+              <th className="text-right px-3 py-2">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pageRows.length === 0 && (
+              <tr><td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">No matching users.</td></tr>
+            )}
+            {pageRows.map((u) => (
+              <tr key={u.employee_id} className="border-t border-white/5">
+                <td className="px-3 py-2 font-mono">{u.employee_id}</td>
+                <td className="px-3 py-2">{u.name}</td>
+                <td className="px-3 py-2">{u.date_of_birth}</td>
+                <td className="px-3 py-2">
+                  <span
+                    className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                    style={
+                      u.registered
+                        ? { background: "rgba(193,234,58,0.18)", color: "#C1EA3A" }
+                        : { background: "rgba(110,60,188,0.20)", color: "#c8a8f0" }
+                    }
+                  >
+                    {u.registered ? "Registered" : "Eligible"}
+                  </span>
+                </td>
+                <td className="px-3 py-2 text-right">
+                  <button
+                    type="button"
+                    onClick={() => onDelete(u.employee_id, u.name)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider border border-red-500/40 text-red-300 hover:bg-red-500/10"
+                  >
+                    <Trash2 size={12} /> Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>{filtered.length} user{filtered.length === 1 ? "" : "s"}</span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={page === 0}
+            onClick={() => setPage(Math.max(0, page - 1))}
+            className="px-3 py-1 rounded-md border border-white/10 disabled:opacity-40"
+          >
+            Prev
+          </button>
+          <span>{page + 1} / {totalPages}</span>
+          <button
+            type="button"
+            disabled={page + 1 >= totalPages}
+            onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+            className="px-3 py-1 rounded-md border border-white/10 disabled:opacity-40"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
