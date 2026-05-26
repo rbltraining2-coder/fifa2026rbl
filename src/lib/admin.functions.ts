@@ -41,7 +41,10 @@ export const importMatches = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Verify caller is the admin.
+    // Verify caller is THE admin (hardcoded employee id).
+    if (data.adminEmployeeId.toUpperCase() !== "50161635") {
+      throw new Error("Forbidden: admin access required.");
+    }
     const { data: caller } = await supabaseAdmin
       .from("registered_users")
       .select("is_admin")
@@ -74,4 +77,30 @@ export const importMatches = createServerFn({ method: "POST" })
     if (insErr) throw new Error(insErr.message);
 
     return { inserted: count ?? rows.length };
+  });
+
+const wipeSchema = z.object({
+  adminEmployeeId: z.string().min(1).max(32).regex(/^[A-Za-z0-9_-]+$/),
+});
+
+export const wipeMatches = createServerFn({ method: "POST" })
+  .inputValidator((d) => wipeSchema.parse(d))
+  .handler(async ({ data }) => {
+    if (data.adminEmployeeId.toUpperCase() !== "50161635") {
+      throw new Error("Forbidden: admin access required.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: caller } = await supabaseAdmin
+      .from("registered_users")
+      .select("is_admin")
+      .eq("employee_id", "50161635")
+      .maybeSingle();
+    if (!caller?.is_admin) throw new Error("Forbidden: admin access required.");
+
+    const { error, count } = await supabaseAdmin
+      .from("matches")
+      .delete({ count: "exact" })
+      .neq("status", "void");
+    if (error) throw new Error(error.message);
+    return { deleted: count ?? 0 };
   });
