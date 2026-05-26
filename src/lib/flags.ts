@@ -33,6 +33,19 @@ Object.assign(MAP, {
   "china pr": "cn", china: "cn", india: "in",
 });
 
+// Additional African / qualifier teams referenced in FIFA 2026 brackets.
+Object.assign(MAP, {
+  burundi: "bi", rwanda: "rw", kenya: "ke", uganda: "ug", tanzania: "tz",
+  zambia: "zm", zimbabwe: "zw", mozambique: "mz", angola: "ao", gabon: "ga",
+  benin: "bj", togo: "tg", niger: "ne", guinea: "gn", "guinea-bissau": "gw",
+  mauritania: "mr", liberia: "lr", "sierra leone": "sl", congo: "cg",
+  "dr congo": "cd", "democratic republic of the congo": "cd",
+  "central african republic": "cf", chad: "td", sudan: "sd",
+  "south sudan": "ss", libya: "ly", malawi: "mw", madagascar: "mg",
+  comoros: "km", "equatorial guinea": "gq", eritrea: "er", ethiopia: "et",
+  somalia: "so", botswana: "bw", namibia: "na", lesotho: "ls", eswatini: "sz",
+});
+
 export function flagCode(team: string): string | null {
   const key = team.trim().toLowerCase();
   return MAP[key] ?? null;
