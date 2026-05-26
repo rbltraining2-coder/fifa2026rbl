@@ -68,6 +68,9 @@ function AdminPage() {
   const importFn = useServerFn(importMatches);
   const wipeFn = useServerFn(wipeMatches);
   const importUsersFn = useServerFn(importEligibleEmployees);
+  const addUserFn = useServerFn(addEligibleEmployee);
+  const listUsersFn = useServerFn(listAllUsers);
+  const deleteUserFn = useServerFn(deleteUserEverywhere);
   const [rows, setRows] = useState<Row[]>([]);
   const [filename, setFilename] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -78,6 +81,18 @@ function AdminPage() {
   const [userBusy, setUserBusy] = useState(false);
   const [userDragOver, setUserDragOver] = useState(false);
   const userInputRef = useRef<HTMLInputElement>(null);
+  const [manual, setManual] = useState({ employee_id: "", name: "", date_of_birth: "" });
+  const [adding, setAdding] = useState(false);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 10;
+
+  const usersQuery = useQuery({
+    queryKey: ["admin-users"],
+    queryFn: () =>
+      listUsersFn({ data: { adminEmployeeId: ADMIN_EMPLOYEE_ID } }),
+    enabled: profile?.employee_id === ADMIN_EMPLOYEE_ID && tab === "users",
+  });
 
   // Hard guard: ONLY employee 50161635 may see this view.
   if (loading) {
