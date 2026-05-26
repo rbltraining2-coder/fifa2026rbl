@@ -8,6 +8,7 @@ import PredictionSheet from "@/components/PredictionSheet";
 import TeamFlag from "@/components/TeamFlag";
 import { Lock } from "lucide-react";
 import { getPredictionWindow } from "@/lib/predictionWindow";
+import promoBanner from "@/assets/promo-banner.png";
 
 export const Route = createFileRoute("/_app/")({
   head: () => ({
@@ -60,26 +61,17 @@ function HomePage() {
   return (
     <div className="space-y-6">
       <h1 className="sr-only">Match Predictions</h1>
-      <section className="promo-card flex items-center justify-between gap-4">
-        <div className="relative z-10 max-w-[68%]">
-          <p className="text-[10px] uppercase tracking-[0.22em] font-bold opacity-80">
-            Goal Gurus · FIFA 2026
-          </p>
-          <h2 className="mt-1 text-lg sm:text-xl font-black leading-tight">
-            Make your predictions — before time runs out!
-          </h2>
-        </div>
-        <div
-          aria-hidden
-          className="relative z-10 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-4xl sm:text-5xl shrink-0"
-          style={{
-            background: "radial-gradient(circle at 30% 30%, #ffffff 0%, #d6d6d6 35%, #1c1c1c 100%)",
-            boxShadow: "0 18px 40px -10px rgba(0,0,0,0.6), inset 0 -6px 12px rgba(0,0,0,0.45)",
-            transform: "rotate(-12deg)",
-          }}
-        >
-          ⚽
-        </div>
+      <section
+        aria-label="Goal Gurus FIFA 2026 promo"
+        className="w-full rounded-2xl overflow-hidden"
+        style={{ boxShadow: "0 20px 50px -20px rgba(45,18,77,0.7)" }}
+      >
+        <img
+          src={promoBanner}
+          alt="Make your predictions before time runs out — Goal Gurus FIFA 2026"
+          className="w-full h-auto block"
+          loading="eager"
+        />
       </section>
       <section className="glossy-card welcome-card p-5">
         <p className="text-[11px] uppercase tracking-[0.18em] font-bold text-[color:var(--success)]">
