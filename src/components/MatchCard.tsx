@@ -1,5 +1,5 @@
 import Countdown from "./Countdown";
-import { flagUrl, FALLBACK_FLAG } from "@/lib/flags";
+import TeamFlag from "./TeamFlag";
 import { getPredictionWindow } from "@/lib/predictionWindow";
 
 export type Match = {
@@ -68,16 +68,7 @@ function TeamBadge({ name }: { name: string }) {
           boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.15), 0 6px 18px -8px rgba(0,0,0,0.7)",
         }}
       >
-        <img
-          src={flagUrl(name)}
-          alt={`${name} flag`}
-          loading="lazy"
-          onError={(e) => {
-            const el = e.currentTarget;
-            if (el.src !== FALLBACK_FLAG) el.src = FALLBACK_FLAG;
-          }}
-          className="w-full h-full object-cover"
-        />
+        <TeamFlag team={name} size={56} />
       </div>
       <span className="text-xs font-semibold text-center leading-tight">{name}</span>
     </div>
