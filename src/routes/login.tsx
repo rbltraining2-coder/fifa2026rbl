@@ -10,6 +10,7 @@ import { compressAndUploadAvatar } from "@/lib/avatar";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import loginBg from "@/assets/login-bg.png";
+import rblLogo from "@/assets/rbl-logo.png";
 import { Camera } from "lucide-react";
 import { DobInput } from "@/components/DobInput";
 
@@ -134,26 +135,17 @@ function LoginPage() {
     >
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-10">
-          <div
-            className="mx-auto mb-6 inline-block px-5 py-3 rounded-2xl tilt-card"
-            style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow-primary)" }}
-          >
-            <span className="block text-[10px] tracking-[0.4em] text-white/70 font-semibold">PREDICT • COMPETE • WIN</span>
-          </div>
-          <h1
-            className="text-5xl font-black tracking-tight"
-            style={{
-              backgroundImage: "linear-gradient(180deg,#fff 0%, #b8bbb8 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              textShadow: "0 4px 18px rgba(0,0,0,0.45)",
-            }}
-          >
-            GOAL GURUS
-            <span className="sr-only"> — Football Prediction League</span>
+          <img
+            src={rblLogo}
+            alt="RBL FIFA 2026 League"
+            className="mx-auto mb-5 object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.55)]"
+            style={{ maxHeight: 140 }}
+          />
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white leading-tight">
+            RBL FIFA 2026 League
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground uppercase tracking-[0.3em]">
-            Football Prediction League
+          <p className="mt-1 text-xs uppercase tracking-[0.3em] text-white/70">
+            Powered by <span style={{ color: "#F05524" }} className="font-bold">Superdry</span>
           </p>
         </div>
 
