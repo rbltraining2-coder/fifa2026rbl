@@ -17,9 +17,11 @@ export type Match = {
 export function FeatureMatchCard({
   match,
   onPredict,
+  alreadyPredicted = false,
 }: {
   match: Match;
   onPredict: () => void;
+  alreadyPredicted?: boolean;
 }) {
   const w = getPredictionWindow(match.match_time);
   const matchTimeStr = new Date(match.match_time).toLocaleString(undefined, {
@@ -43,12 +45,23 @@ export function FeatureMatchCard({
       </div>
       <button
         onClick={onPredict}
-        disabled={!w.canPredict}
+        disabled={!w.canPredict || alreadyPredicted}
         className="btn-glossy w-full mt-4"
-        style={!w.canPredict ? { filter: "grayscale(1)", opacity: 0.6 } : undefined}
+        style={!w.canPredict || alreadyPredicted ? { filter: "grayscale(0.4)", opacity: 0.7 } : undefined}
       >
-        {w.state === "locked" ? "Locked" : w.state === "early" ? "Opens 24h before" : "Predict Now"}
+        {alreadyPredicted
+          ? "Prediction Submitted"
+          : w.state === "locked"
+          ? "Locked"
+          : w.state === "early"
+          ? "Opens 24h before"
+          : "Predict Now"}
       </button>
+      {alreadyPredicted && (
+        <p className="mt-2 text-[11px] text-center text-muted-foreground">
+          Edit in <span className="font-semibold text-white">My Predictions</span> tab.
+        </p>
+      )}
       {w.state === "early" && (
         <p className="mt-2 text-[11px] text-center text-muted-foreground">
           {w.label}
