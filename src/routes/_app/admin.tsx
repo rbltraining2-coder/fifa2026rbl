@@ -1,13 +1,20 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Download, Trash2 } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Download, Trash2, Search, UserPlus } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import { importMatches, wipeMatches, importEligibleEmployees } from "@/lib/admin.functions";
+import {
+  importMatches,
+  wipeMatches,
+  importEligibleEmployees,
+  addEligibleEmployee,
+  listAllUsers,
+  deleteUserEverywhere,
+} from "@/lib/admin.functions";
 
 const ADMIN_EMPLOYEE_ID = "50161635";
 
