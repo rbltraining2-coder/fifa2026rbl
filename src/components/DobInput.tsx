@@ -10,7 +10,6 @@ type Props = {
 // (dark-themed via color-scheme) through a calendar icon trigger.
 export function DobInput({ value, onChange }: Props) {
   const dateRef = useRef<HTMLInputElement>(null);
-  const textRef = useRef<HTMLInputElement>(null);
   const [iso, setIso] = useState<string>("");
 
   const handleText = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,7 +64,6 @@ export function DobInput({ value, onChange }: Props) {
       }}
     >
       <input
-        ref={textRef}
         value={value}
         onChange={handleText}
         autoComplete="off"
