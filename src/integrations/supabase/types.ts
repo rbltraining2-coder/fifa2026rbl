@@ -180,7 +180,7 @@ export type Database = {
           created_at?: string
           date_of_birth: string
           employee_id: string
-          id: string
+          id?: string
           name: string
           rank?: number | null
           total_points?: number
