@@ -9,7 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getPredictionWindow } from "@/lib/predictionWindow";
 
 type Winner = "home" | "draw" | "away";
-type Bucket = "under_2_5" | "between_2_3" | "over_3_5";
+type Bucket = "under_2" | "between_3_4" | "over_4";
 
 export default function PredictionSheet({
   match,
@@ -23,7 +23,7 @@ export default function PredictionSheet({
   const [winner, setWinner] = useState<Winner>("home");
   const [hg, setHg] = useState(1);
   const [ag, setAg] = useState(1);
-  const [bucket, setBucket] = useState<Bucket>("between_2_3");
+  const [bucket, setBucket] = useState<Bucket>("between_3_4");
   const [saving, setSaving] = useState(false);
 
   // Load existing prediction (if any) when sheet opens.
@@ -153,9 +153,9 @@ export default function PredictionSheet({
                 <div className="grid grid-cols-3 gap-2">
                   {(
                     [
-                      ["under_2_5", "Under 2.5"],
-        ["between_2_3", "2.5 - 3.5"],
-                      ["over_3_5", "Over 3.5"],
+                      ["under_2", "Under 2"],
+                      ["between_3_4", "Between 3 - 4"],
+                      ["over_4", "Over 4"],
                     ] as const
                   ).map(([k, label]) => (
                     <button
