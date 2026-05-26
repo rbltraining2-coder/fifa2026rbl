@@ -49,7 +49,8 @@ function ProfilePage() {
     setUploading(true);
     try {
       const url = await compressAndUploadAvatar(file, user.id);
-      await supabase.from("registered_users").update({ avatar_url: url }).eq("id", user.id);
+      const { updateMyAvatar } = await import("@/lib/predictions.functions");
+      await updateMyAvatar({ data: { userId: user.id, avatarUrl: url } });
       await refreshProfile();
       toast.success("Photo updated");
     } catch (err) {

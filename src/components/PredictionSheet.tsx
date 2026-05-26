@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getPredictionWindow } from "@/lib/predictionWindow";
+import { savePrediction } from "@/lib/predictions.functions";
 
 type Winner = "home" | "draw" | "away";
 type Bucket = "under_2" | "between_3_4" | "over_4";
@@ -56,24 +57,23 @@ export default function PredictionSheet({
       return;
     }
     setSaving(true);
-    const { error } = await supabase
-      .from("predictions")
-      .upsert(
-        {
-          user_id: user.employee_id,
-          match_id: match.id,
+    try {
+      await savePrediction({
+        data: {
+          employeeId: user.employee_id,
+          matchId: match.id,
           winner,
-          predicted_home_score: hg,
-          predicted_away_score: ag,
-          total_goals_bucket: bucket,
+          homeScore: hg,
+          awayScore: ag,
+          bucket,
         },
-        { onConflict: "user_id,match_id" },
-      );
-    setSaving(false);
-    if (error) {
-      toast.error(error.message);
+      });
+    } catch (e) {
+      setSaving(false);
+      toast.error(e instanceof Error ? e.message : "Save failed");
       return;
     }
+    setSaving(false);
     toast.success("Prediction saved");
     qc.invalidateQueries({ queryKey: ["predictions"] });
     onClose();
