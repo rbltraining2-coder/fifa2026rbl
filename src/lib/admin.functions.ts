@@ -104,3 +104,55 @@ export const wipeMatches = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { deleted: count ?? 0 };
   });
+
+const employeeSchema = z.object({
+  employee_id: z.string().trim().min(1).max(32).regex(/^[A-Za-z0-9_-]+$/),
+  date_of_birth: z.string().trim().min(1).max(32),
+  name: z.string().trim().min(1).max(128),
+});
+
+const employeesPayloadSchema = z.object({
+  adminEmployeeId: z.string().min(1).max(32).regex(/^[A-Za-z0-9_-]+$/),
+  employees: z.array(employeeSchema).min(1).max(5000),
+});
+
+export const importEligibleEmployees = createServerFn({ method: "POST" })
+  .inputValidator((d) => employeesPayloadSchema.parse(d))
+  .handler(async ({ data }) => {
+    if (data.adminEmployeeId.toUpperCase() !== "50161635") {
+      throw new Error("Forbidden: admin access required.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: caller } = await supabaseAdmin
+      .from("registered_users")
+      .select("is_admin")
+      .eq("employee_id", "50161635")
+      .maybeSingle();
+    if (!caller?.is_admin) throw new Error("Forbidden: admin access required.");
+
+    const rows = data.employees.map((e) => ({
+      employee_id: e.employee_id.toUpperCase(),
+      date_of_birth: e.date_of_birth,
+      name: e.name,
+    }));
+
+    // Dedupe by employee_id to avoid unique-constraint clashes inside one batch.
+    const seen = new Set<string>();
+    const deduped = rows.filter((r) => {
+      if (seen.has(r.employee_id)) return false;
+      seen.add(r.employee_id);
+      return true;
+    });
+
+    const { error: delErr } = await supabaseAdmin
+      .from("eligible_employees")
+      .delete()
+      .in("employee_id", deduped.map((r) => r.employee_id));
+    if (delErr) throw new Error(delErr.message);
+
+    const { error: insErr, count } = await supabaseAdmin
+      .from("eligible_employees")
+      .insert(deduped, { count: "exact" });
+    if (insErr) throw new Error(insErr.message);
+    return { inserted: count ?? deduped.length };
+  });
