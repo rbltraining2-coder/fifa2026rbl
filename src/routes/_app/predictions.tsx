@@ -7,6 +7,9 @@ import PredictionSheet from "@/components/PredictionSheet";
 import ResultBreakdown from "@/components/ResultBreakdown";
 import type { Match } from "@/components/MatchCard";
 import type { Prediction } from "@/lib/points";
+import TeamFlag from "@/components/TeamFlag";
+import { getPredictionWindow } from "@/lib/predictionWindow";
+import { Lock, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/_app/predictions")({
   head: () => ({
@@ -85,6 +88,21 @@ function PredictionsPage() {
     <div className="space-y-4">
       <h1 className="text-xl font-black">My Predictions</h1>
 
+      <div
+        className="rounded-2xl px-4 py-3 flex items-start gap-3"
+        style={{
+          background: "linear-gradient(135deg, rgba(245,158,11,0.18), rgba(245,158,11,0.06))",
+          border: "1px solid rgba(245,158,11,0.35)",
+        }}
+        role="note"
+      >
+        <AlertTriangle size={18} className="mt-0.5 shrink-0" style={{ color: "#F59E0B" }} />
+        <p className="text-xs leading-snug text-white/90">
+          <span className="font-bold">Note:</span> You will not be able to create or edit
+          predictions 30 minutes before a match kicks off.
+        </p>
+      </div>
+
       <div className="glossy-card p-1 grid grid-cols-3 gap-1">
         {(["upcoming", "locked", "completed"] as Tab[]).map((t) => (
           <button
@@ -108,14 +126,21 @@ function PredictionsPage() {
             No {tab} predictions yet.
           </li>
         )}
-        {filtered.map((r) => (
+        {filtered.map((r) => {
+          const w = getPredictionWindow(r.match.match_time);
+          return (
           <li
             key={r.prediction.id}
             className="glossy-card p-4 flex items-center justify-between gap-3"
             onClick={() => r.match.status === "completed" && setShowResult(r)}
             role={r.match.status === "completed" ? "button" : undefined}
           >
-            <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="flex -space-x-2 shrink-0">
+                <TeamFlag team={r.match.home_team} size={28} className="ring-2 ring-[color:var(--card)]" />
+                <TeamFlag team={r.match.away_team} size={28} className="ring-2 ring-[color:var(--card)]" />
+              </div>
+              <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate">
                 {r.match.home_team} <span className="text-muted-foreground">vs</span> {r.match.away_team}
               </p>
@@ -123,8 +148,9 @@ function PredictionsPage() {
                 Pick: {r.prediction.predicted_home_score} – {r.prediction.predicted_away_score} •{" "}
                 {r.prediction.winner ?? "—"}
               </p>
+              </div>
             </div>
-            {tab === "upcoming" && (
+            {tab === "upcoming" && w.canPredict && (
               <button
                 className="text-xs font-bold px-3 py-1.5 rounded-full"
                 style={{ background: "var(--gradient-primary)", color: "#fff" }}
@@ -136,6 +162,14 @@ function PredictionsPage() {
                 Edit
               </button>
             )}
+            {tab === "upcoming" && !w.canPredict && (
+              <span
+                className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full flex items-center gap-1"
+                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.5)" }}
+              >
+                <Lock size={12} /> Locked
+              </span>
+            )}
             {tab === "completed" && (
               <span
                 className="text-xs font-black px-3 py-1.5 rounded-full"
@@ -145,7 +179,8 @@ function PredictionsPage() {
               </span>
             )}
           </li>
-        ))}
+          );
+        })}
       </ul>
 
       <PredictionSheet match={editing} onClose={() => setEditing(null)} />
