@@ -4,7 +4,6 @@ import type { Session, User } from "@supabase/supabase-js";
 
 type Profile = {
   id: string;
-  employee_id: string;
   name: string;
   avatar_url: string | null;
   total_points: number;
@@ -30,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadProfile = async (uid: string) => {
     const { data } = await supabase
       .from("registered_users")
-      .select("id, employee_id, name, avatar_url, total_points, rank")
+      .select("id, name, avatar_url, total_points, rank")
       .eq("id", uid)
       .maybeSingle();
     setProfile((data as Profile | null) ?? null);
