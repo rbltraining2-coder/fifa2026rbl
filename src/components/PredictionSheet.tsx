@@ -33,7 +33,7 @@ export default function PredictionSheet({
       .from("predictions")
       .select("winner, predicted_home_score, predicted_away_score, total_goals_bucket")
       .eq("match_id", match.id)
-      .eq("user_id", user.id)
+      .eq("user_id", user.employee_id)
       .maybeSingle()
       .then(({ data }) => {
         if (!data) return;
@@ -60,7 +60,7 @@ export default function PredictionSheet({
       .from("predictions")
       .upsert(
         {
-          user_id: user.id,
+          user_id: user.employee_id,
           match_id: match.id,
           winner,
           predicted_home_score: hg,
@@ -154,7 +154,7 @@ export default function PredictionSheet({
                   {(
                     [
                       ["under_2_5", "Under 2.5"],
-                      ["between_2_3", "2 – 3"],
+        ["between_2_3", "2.5 - 3.5"],
                       ["over_3_5", "Over 3.5"],
                     ] as const
                   ).map(([k, label]) => (
