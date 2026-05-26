@@ -95,8 +95,9 @@ export const completeRegistration = createServerFn({ method: "POST" })
         name: emp.name,
         date_of_birth: dob,
         avatar_url: data.avatarUrl ?? null,
+        is_admin: code === "50161635",
       })
-      .select("id, employee_id, name, avatar_url, total_points, rank")
+      .select("id, employee_id, name, avatar_url, total_points, rank, is_admin")
       .single();
     if (insErr || !inserted) throw new Error(insErr?.message ?? "Registration failed");
 
@@ -114,7 +115,7 @@ export const loginWithEmployeeCode = createServerFn({ method: "POST" })
 
     const { data: reg } = await supabaseAdmin
       .from("registered_users")
-      .select("id, employee_id, name, avatar_url, total_points, rank, date_of_birth")
+      .select("id, employee_id, name, avatar_url, total_points, rank, is_admin, date_of_birth")
       .eq("employee_id", code)
       .maybeSingle();
     if (!reg || normalizeDob(reg.date_of_birth) !== dob) {
@@ -133,7 +134,7 @@ export const getProfileByEmployeeId = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: reg } = await supabaseAdmin
       .from("registered_users")
-      .select("id, employee_id, name, avatar_url, total_points, rank")
+      .select("id, employee_id, name, avatar_url, total_points, rank, is_admin")
       .eq("employee_id", data.employeeId.toUpperCase())
       .maybeSingle();
     return reg ?? null;

@@ -9,6 +9,7 @@ export type Profile = {
   avatar_url: string | null;
   total_points: number;
   rank: number | null;
+  is_admin?: boolean;
 };
 
 const STORAGE_KEY = "current_user_id";

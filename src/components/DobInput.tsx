@@ -37,18 +37,23 @@ export function DobInput({ value, onChange }: Props) {
     onChange(`${d}/${m}/${y}`);
   };
 
-  const openPicker = () => {
+  const openPicker = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     const el = dateRef.current;
     if (!el) return;
-    // showPicker is the standardized opener; fall back to focus+click.
     type WithShow = HTMLInputElement & { showPicker?: () => void };
     const withShow = el as WithShow;
-    if (typeof withShow.showPicker === "function") {
-      withShow.showPicker();
-    } else {
-      el.focus();
-      el.click();
+    try {
+      if (typeof withShow.showPicker === "function") {
+        withShow.showPicker();
+        return;
+      }
+    } catch {
+      // some browsers throw if input isn't focusable yet
     }
+    el.focus();
+    el.click();
   };
 
   return (
@@ -66,11 +71,14 @@ export function DobInput({ value, onChange }: Props) {
         type="button"
         onClick={openPicker}
         aria-label="Open calendar"
-        className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg flex items-center justify-center text-white/80 hover:text-white transition"
+        className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg flex items-center justify-center text-white/80 hover:text-white transition z-20"
         style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow-primary)" }}
       >
         <CalendarIcon size={16} />
       </button>
+      {/* Native date picker overlays the calendar icon; clicking it
+          opens the dark-themed system date picker reliably even when
+          showPicker() is blocked. */}
       <input
         ref={dateRef}
         type="date"
@@ -79,9 +87,8 @@ export function DobInput({ value, onChange }: Props) {
         max={new Date().toISOString().slice(0, 10)}
         min="1900-01-01"
         style={{ colorScheme: "dark" }}
-        className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 opacity-0 pointer-events-none"
-        tabIndex={-1}
-        aria-hidden="true"
+        aria-label="Pick date of birth"
+        className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 opacity-0 cursor-pointer z-30"
       />
     </div>
   );
