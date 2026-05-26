@@ -1,69 +1,74 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { Session, User } from "@supabase/supabase-js";
+import { useServerFn } from "@tanstack/react-start";
+import { getProfileByEmployeeId } from "@/lib/auth.functions";
 
-type Profile = {
+export type Profile = {
   id: string;
+  employee_id: string;
   name: string;
   avatar_url: string | null;
   total_points: number;
   rank: number | null;
 };
 
+const STORAGE_KEY = "current_user_id";
+
 type AuthContextValue = {
   loading: boolean;
-  session: Session | null;
-  user: User | null;
+  user: { id: string; employee_id: string } | null;
   profile: Profile | null;
+  setProfile: (p: Profile | null) => void;
   refreshProfile: () => Promise<void>;
+  signIn: (p: Profile) => void;
   signOut: () => Promise<void>;
 };
 
 const Ctx = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const fetchProfile = useServerFn(getProfileByEmployeeId);
 
-  const loadProfile = async (uid: string) => {
-    const { data } = await supabase
-      .from("registered_users")
-      .select("id, name, avatar_url, total_points, rank")
-      .eq("id", uid)
-      .maybeSingle();
-    setProfile((data as Profile | null) ?? null);
+  const loadFromStorage = async () => {
+    const empId = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
+    if (!empId) {
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
+    try {
+      const p = await fetchProfile({ data: { employeeId: empId } });
+      if (p) setProfile(p as Profile);
+      else {
+        localStorage.removeItem(STORAGE_KEY);
+        setProfile(null);
+      }
+    } catch {
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
-      if (s?.user) {
-        setTimeout(() => loadProfile(s.user.id), 0);
-      } else {
-        setProfile(null);
-      }
-    });
-
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      if (data.session?.user) loadProfile(data.session.user.id);
-      setLoading(false);
-    });
-
-    return () => sub.subscription.unsubscribe();
+    loadFromStorage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const value: AuthContextValue = {
     loading,
-    session,
-    user: session?.user ?? null,
+    user: profile ? { id: profile.id, employee_id: profile.employee_id } : null,
     profile,
-    refreshProfile: async () => {
-      if (session?.user) await loadProfile(session.user.id);
+    setProfile,
+    refreshProfile: loadFromStorage,
+    signIn: (p) => {
+      localStorage.setItem(STORAGE_KEY, p.employee_id);
+      setProfile(p);
     },
     signOut: async () => {
-      await supabase.auth.signOut();
+      localStorage.removeItem(STORAGE_KEY);
+      setProfile(null);
     },
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
