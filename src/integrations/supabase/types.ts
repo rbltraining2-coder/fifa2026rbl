@@ -265,36 +265,7 @@ export type Database = {
       }
     }
     Views: {
-      leaderboard_view: {
-        Row: {
-          avatar_url: string | null
-          created_at: string | null
-          id: string | null
-          name: string | null
-          rank: number | null
-          total_points: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string | null
-          id?: string | null
-          name?: string | null
-          rank?: number | null
-          total_points?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string | null
-          id?: string | null
-          name?: string | null
-          rank?: number | null
-          total_points?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       [_ in never]: never
