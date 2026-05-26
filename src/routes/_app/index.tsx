@@ -32,7 +32,7 @@ function greeting() {
 }
 
 function HomePage() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [sheet, setSheet] = useState<Match | null>(null);
 
   const { data: matches } = useQuery({
@@ -46,6 +46,20 @@ function HomePage() {
       return (data ?? []) as Match[];
     },
   });
+
+  const { data: predictedIds } = useQuery({
+    queryKey: ["predictions", "ids", user?.employee_id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("predictions")
+        .select("match_id")
+        .eq("user_id", user!.employee_id);
+      if (error) throw error;
+      return new Set((data ?? []).map((p) => p.match_id as string));
+    },
+  });
+  const predicted = predictedIds ?? new Set<string>();
 
   const now = Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
@@ -96,7 +110,12 @@ function HomePage() {
         ) : (
           <div className="flex flex-col gap-4">
             {today.map((m) => (
-              <FeatureMatchCard key={m.id} match={m} onPredict={() => setSheet(m)} />
+              <FeatureMatchCard
+                key={m.id}
+                match={m}
+                alreadyPredicted={predicted.has(m.id)}
+                onPredict={() => setSheet(m)}
+              />
             ))}
           </div>
         )}
@@ -107,10 +126,11 @@ function HomePage() {
         <ul className="space-y-2">
           {upcoming.map((m) => {
             const w = getPredictionWindow(m.match_time, now);
+            const isPredicted = predicted.has(m.id);
             return (
               <li
                 key={m.id}
-                onClick={() => w.canPredict && setSheet(m)}
+                onClick={() => w.canPredict && !isPredicted && setSheet(m)}
                 className="glossy-card px-4 py-3 flex items-center justify-between cursor-pointer hover:translate-y-[-1px] transition"
               >
                 <div className="flex items-center gap-3">
@@ -133,6 +153,11 @@ function HomePage() {
                 {w.state === "early" && (
                   <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
                     Opens 24h before
+                  </span>
+                )}
+                {isPredicted && w.state === "open" && (
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-[color:var(--success)]">
+                    Submitted
                   </span>
                 )}
               </li>
