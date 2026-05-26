@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Home, ListChecks, Trophy, Gift, User } from "lucide-react";
+import { Home, ListChecks, Trophy, Gift, User, ShieldCheck } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { compressAndUploadAvatar } from "@/lib/avatar";
@@ -60,7 +60,22 @@ export default function AppShell({ children }: { children: ReactNode }) {
             <span className="text-sm font-semibold tracking-wide hidden sm:block">Goal Gurus</span>
           </button>
 
-          <button
+          <div className="flex items-center gap-2">
+            {profile?.is_admin && (
+              <button
+                onClick={() => nav({ to: "/admin" })}
+                aria-label="Open admin dashboard"
+                title="Admin Dashboard"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white border border-white/20 hover:scale-105 transition"
+                style={{
+                  background: "linear-gradient(135deg, #16a34a 0%, #4ade80 100%)",
+                  boxShadow: "0 8px 24px -8px rgba(34,197,94,0.6)",
+                }}
+              >
+                <ShieldCheck size={18} />
+              </button>
+            )}
+            <button
             onClick={() => fileRef.current?.click()}
             className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-white/15 bg-card shadow-md hover:border-[var(--primary-glow)] transition"
             aria-label="Update avatar"
@@ -78,6 +93,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               </span>
             )}
           </button>
+          </div>
           <input
             ref={fileRef}
             type="file"

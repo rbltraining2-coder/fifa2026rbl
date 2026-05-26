@@ -17,6 +17,7 @@ import { Route as AppRewardsRouteImport } from './routes/_app/rewards'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppPredictionsRouteImport } from './routes/_app/predictions'
 import { Route as AppLeaderboardRouteImport } from './routes/_app/leaderboard'
+import { Route as AppAdminRouteImport } from './routes/_app/admin'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -57,11 +58,17 @@ const AppLeaderboardRoute = AppLeaderboardRouteImport.update({
   path: '/leaderboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminRoute = AppAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin': typeof AppAdminRoute
   '/leaderboard': typeof AppLeaderboardRoute
   '/predictions': typeof AppPredictionsRoute
   '/profile': typeof AppProfileRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin': typeof AppAdminRoute
   '/leaderboard': typeof AppLeaderboardRoute
   '/predictions': typeof AppPredictionsRoute
   '/profile': typeof AppProfileRoute
@@ -81,6 +89,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/_app/admin': typeof AppAdminRoute
   '/_app/leaderboard': typeof AppLeaderboardRoute
   '/_app/predictions': typeof AppPredictionsRoute
   '/_app/profile': typeof AppProfileRoute
@@ -93,6 +102,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/sitemap.xml'
+    | '/admin'
     | '/leaderboard'
     | '/predictions'
     | '/profile'
@@ -101,6 +111,7 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/sitemap.xml'
+    | '/admin'
     | '/leaderboard'
     | '/predictions'
     | '/profile'
@@ -111,6 +122,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/login'
     | '/sitemap.xml'
+    | '/_app/admin'
     | '/_app/leaderboard'
     | '/_app/predictions'
     | '/_app/profile'
@@ -182,10 +194,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLeaderboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin': {
+      id: '/_app/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppAdminRoute: typeof AppAdminRoute
   AppLeaderboardRoute: typeof AppLeaderboardRoute
   AppPredictionsRoute: typeof AppPredictionsRoute
   AppProfileRoute: typeof AppProfileRoute
@@ -194,6 +214,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAdminRoute: AppAdminRoute,
   AppLeaderboardRoute: AppLeaderboardRoute,
   AppPredictionsRoute: AppPredictionsRoute,
   AppProfileRoute: AppProfileRoute,
@@ -211,3 +232,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
