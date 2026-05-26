@@ -125,6 +125,13 @@ export type Database = {
             referencedRelation: "matches"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "predictions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "registered_users"
+            referencedColumns: ["employee_id"]
+          },
         ]
       }
       profiles: {
