@@ -6,8 +6,8 @@ import {
   verifyEligibility,
   completeRegistration,
 } from "@/lib/auth.functions";
-import { supabase } from "@/integrations/supabase/client";
 import { compressAndUploadAvatar } from "@/lib/avatar";
+import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import loginBg from "@/assets/login-bg.png";
 import { Camera } from "lucide-react";
@@ -46,6 +46,7 @@ function LoginPage() {
   const login = useServerFn(loginWithEmployeeCode);
   const verify = useServerFn(verifyEligibility);
   const register = useServerFn(completeRegistration);
+  const { signIn } = useAuth();
 
   const switchMode = (m: Mode) => {
     setMode(m);
@@ -60,11 +61,7 @@ function LoginPage() {
     setBusy(true);
     try {
       const r = await login({ data: { employeeCode: code.trim(), dateOfBirth: dob.trim() } });
-      const { error } = await supabase.auth.setSession({
-        access_token: r.access_token,
-        refresh_token: r.refresh_token,
-      });
-      if (error) throw error;
+      signIn(r);
       toast.success("Welcome back!");
       nav({ to: "/" });
     } catch (err) {
@@ -110,20 +107,12 @@ function LoginPage() {
     }
     setBusy(true);
     try {
+      // Upload avatar first under a code-scoped path, then insert the row.
+      const avatarUrl = await compressAndUploadAvatar(avatarFile, code.trim().toUpperCase());
       const r = await register({
-        data: { employeeCode: code.trim(), dateOfBirth: dob.trim() },
+        data: { employeeCode: code.trim(), dateOfBirth: dob.trim(), avatarUrl },
       });
-      const { error } = await supabase.auth.setSession({
-        access_token: r.access_token,
-        refresh_token: r.refresh_token,
-      });
-      if (error) throw error;
-      // Upload avatar against the freshly-created session.
-      const { data: u } = await supabase.auth.getUser();
-      if (u.user) {
-        const url = await compressAndUploadAvatar(avatarFile, u.user.id);
-        await supabase.from("registered_users").update({ avatar_url: url }).eq("id", u.user.id);
-      }
+      signIn(r);
       toast.success(`Welcome, ${eligibleName}!`);
       nav({ to: "/" });
     } catch (err) {

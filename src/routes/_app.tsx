@@ -8,14 +8,14 @@ export const Route = createFileRoute("/_app")({
 });
 
 function AppLayout() {
-  const { loading, session } = useAuth();
+  const { loading, user } = useAuth();
   const nav = useNavigate();
 
   useEffect(() => {
-    if (!loading && !session) nav({ to: "/login" });
-  }, [loading, session, nav]);
+    if (!loading && !user) nav({ to: "/login" });
+  }, [loading, user, nav]);
 
-  if (loading || !session) {
+  if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
         Loading…
