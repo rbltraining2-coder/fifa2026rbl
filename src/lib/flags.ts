@@ -33,11 +33,16 @@ Object.assign(MAP, {
   "china pr": "cn", china: "cn", india: "in",
 });
 
+export function flagCode(team: string): string | null {
+  const key = team.trim().toLowerCase();
+  return MAP[key] ?? null;
+}
+
 export function flagUrl(team: string): string {
   const key = team.trim().toLowerCase();
   const code = MAP[key];
   if (!code) return FALLBACK_FLAG;
-  return `https://flagcdn.com/w160/${code}.png`;
+  return `https://flagcdn.com/w80/${code}.png`;
 }
 
 // Neutral transparent placeholder used when a country isn't mapped or the
