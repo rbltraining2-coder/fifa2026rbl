@@ -61,8 +61,9 @@
   --popover: #161F30;
   --popover-foreground: #E6E9F2;
   --primary: #C1EA3A;
-  --primary-foreground: #0B0F19;
-  --primary-glow: #d6f76b;
+  --primary: #1E5631;
+  --primary-foreground: #FFFFFF;
+  --primary-glow: #2E7D46;
   --secondary: #25354E;
   --secondary-foreground: #E6E9F2;
   --muted: #25354E;
@@ -71,38 +72,38 @@
   --accent-foreground: #ffffff;
   --destructive: #E61D25;
   --destructive-foreground: #ffffff;
-  --success: #C1EA3A;
-  --success-foreground: #0B0F19;
+  --success: #1E5631;
+  --success-foreground: #FFFFFF;
   --surface: #161F30;
   --surface-foreground: #E6E9F2;
   --border: rgba(255,255,255,0.06);
   --input: rgba(255,255,255,0.08);
-  --ring: #C1EA3A;
-  --chart-1: #C1EA3A;
+  --ring: #1E5631;
+  --chart-1: #1E5631;
   --chart-2: #6E3CBC;
   --chart-3: #E61D25;
   --chart-4: #25354E;
-  --chart-5: #d6f76b;
+  --chart-5: #2E7D46;
   --sidebar: #0B0F19;
   --sidebar-foreground: #E6E9F2;
-  --sidebar-primary: #C1EA3A;
-  --sidebar-primary-foreground: #0B0F19;
+  --sidebar-primary: #1E5631;
+  --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #6E3CBC;
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgba(255,255,255,0.06);
-  --sidebar-ring: #C1EA3A;
+  --sidebar-ring: #1E5631;
 
   /* Custom design tokens */
-  --gradient-primary: linear-gradient(135deg, #C1EA3A 0%, #d6f76b 100%);
-  --gradient-success: linear-gradient(135deg, #C1EA3A 0%, #d6f76b 100%);
+  --gradient-primary: linear-gradient(135deg, #1E5631 0%, #2E7D46 100%);
+  --gradient-success: linear-gradient(135deg, #1E5631 0%, #2E7D46 100%);
   --gradient-card: linear-gradient(145deg, rgba(22,31,48,0.92) 0%, rgba(11,15,25,0.92) 100%);
-  --gradient-promo: linear-gradient(135deg, #4B1F8F 0%, #6E3CBC 55%, #25354E 100%);
+  --gradient-promo: linear-gradient(135deg, #2D124D 0%, #3A1A66 55%, #1A0633 100%);
   --gradient-podium-gold: linear-gradient(180deg, #f5d76e 0%, #c49a2a 100%);
   --gradient-podium-silver: linear-gradient(180deg, #e6e8eb 0%, #8b9097 100%);
   --gradient-podium-bronze: linear-gradient(180deg, #d49a6a 0%, #8a5a2a 100%);
   --shadow-card: 0 10px 30px -12px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.04);
-  --shadow-glow-primary: 0 10px 40px -10px rgba(193, 234, 58, 0.45);
-  --shadow-glow-success: 0 10px 40px -10px rgba(193, 234, 58, 0.45);
+  --shadow-glow-primary: 0 10px 40px -10px rgba(30, 86, 49, 0.55);
+  --shadow-glow-success: 0 10px 40px -10px rgba(30, 86, 49, 0.55);
   --shadow-glow-danger: 0 10px 40px -10px rgba(230, 29, 37, 0.45);
   --shadow-tilt: 0 18px 40px -16px rgba(0,0,0,0.6);
 }
@@ -142,10 +143,10 @@
   }
   .welcome-card {
     background:
-      radial-gradient(circle at 0% 50%, rgba(193,234,58,0.18), transparent 55%),
+      radial-gradient(circle at 0% 50%, rgba(30,86,49,0.22), transparent 55%),
       linear-gradient(145deg, rgba(22,31,48,0.95) 0%, rgba(11,15,25,0.95) 100%);
-    box-shadow: 0 10px 40px -10px rgba(193,234,58,0.25), inset 0 1px 0 rgba(255,255,255,0.05);
-    border: 1px solid rgba(193,234,58,0.20);
+    box-shadow: 0 10px 40px -10px rgba(30,86,49,0.30), inset 0 1px 0 rgba(255,255,255,0.05);
+    border: 1px solid rgba(30,86,49,0.30);
   }
   .promo-card {
     position: relative;
@@ -161,7 +162,7 @@
     content: "";
     position: absolute; inset: 0;
     background:
-      radial-gradient(circle at 110% -10%, rgba(193,234,58,0.35), transparent 45%),
+      radial-gradient(circle at 110% -10%, rgba(167,139,250,0.45), transparent 45%),
       radial-gradient(circle at -10% 120%, rgba(255,255,255,0.10), transparent 50%);
     pointer-events: none;
   }
@@ -197,7 +198,7 @@
     padding: 0.85rem 1.4rem;
     font-weight: 700;
     letter-spacing: 0.01em;
-    color: #0B0F19;
+    color: #FFFFFF;
     box-shadow: var(--shadow-glow-success);
     transition: transform 120ms ease, box-shadow 200ms ease, filter 200ms ease;
     background: var(--gradient-primary);
