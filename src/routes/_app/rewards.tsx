@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "motion/react";
-import { Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import championBanner from "@/assets/champion-cup-banner.png";
 
 export const Route = createFileRoute("/_app/rewards")({
   head: () => ({
@@ -42,19 +41,24 @@ function RewardsPage() {
       <h1 className="text-xl font-black">Rewards</h1>
       <p className="text-sm text-muted-foreground">This week's champion of the prediction league.</p>
 
+      <section
+        aria-label="Champion Cup banner"
+        className="w-full rounded-2xl overflow-hidden"
+        style={{ boxShadow: "0 20px 60px -20px rgba(120,60,220,0.55)" }}
+      >
+        <img
+          src={championBanner}
+          alt="RBL FIFA 2026 League — Play. Predict. Win!"
+          className="w-full h-auto block"
+          loading="eager"
+        />
+      </section>
+
       <div className="glossy-card p-6 text-center relative overflow-hidden">
         <div className="accent-strip" />
         <p className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground">Weekly Winner</p>
         {data ? (
           <>
-            <motion.div
-              className="mx-auto mt-5 w-28 h-28 rounded-full flex items-center justify-center"
-              style={{ background: "var(--gradient-podium-gold)", boxShadow: "0 20px 50px -20px rgba(245, 215, 110, 0.7)" }}
-              animate={{ rotateY: [0, 360] }}
-              transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-            >
-              <Trophy size={56} className="text-yellow-900" strokeWidth={2.5} />
-            </motion.div>
             <h2 className="mt-5 text-2xl font-black">{data.profiles.name || data.profiles.employee_code}</h2>
             <p className="text-xs text-muted-foreground tracking-widest mt-1">
               {data.profiles.employee_code} · WEEK {data.week_number}
