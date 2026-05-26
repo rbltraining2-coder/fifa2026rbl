@@ -41,7 +41,10 @@ export const importMatches = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Verify caller is the admin.
+    // Verify caller is THE admin (hardcoded employee id).
+    if (data.adminEmployeeId.toUpperCase() !== "50161635") {
+      throw new Error("Forbidden: admin access required.");
+    }
     const { data: caller } = await supabaseAdmin
       .from("registered_users")
       .select("is_admin")
