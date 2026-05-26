@@ -39,7 +39,7 @@ function PredictionsPage() {
       const { data, error } = await supabase
         .from("predictions")
         .select("id, match_id, winner, predicted_home_score, predicted_away_score, total_goals_bucket, points_earned, created_at, matches(*)")
-        .eq("user_id", user!.id)
+        .eq("user_id", user!.employee_id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as Array<{
