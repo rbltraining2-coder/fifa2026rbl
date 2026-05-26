@@ -61,7 +61,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           </button>
 
           <div className="flex items-center gap-2">
-            {profile?.is_admin && (
+            {profile?.employee_id === "50161635" && (
               <button
                 onClick={() => nav({ to: "/admin" })}
                 aria-label="Open admin dashboard"
