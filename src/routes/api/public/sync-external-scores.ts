@@ -86,6 +86,8 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
             .select("id, home_score, away_score, status")
             .eq("home_team", item.home_team)
             .eq("away_team", item.away_team)
+            .order("created_at", { ascending: false })
+            .limit(1)
             .maybeSingle();
           if (findErr) {
             failed.push({ home_team: item.home_team, away_team: item.away_team, error: findErr.message });
