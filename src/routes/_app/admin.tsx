@@ -14,6 +14,7 @@ import {
   addEligibleEmployee,
   listAllUsers,
   deleteUserEverywhere,
+  addMatchManually,
 } from "@/lib/admin.functions";
 
 const ADMIN_EMPLOYEE_ID = "50161635";
@@ -71,6 +72,7 @@ function AdminPage() {
   const addUserFn = useServerFn(addEligibleEmployee);
   const listUsersFn = useServerFn(listAllUsers);
   const deleteUserFn = useServerFn(deleteUserEverywhere);
+  const addMatchFn = useServerFn(addMatchManually);
   const [rows, setRows] = useState<Row[]>([]);
   const [filename, setFilename] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -83,6 +85,13 @@ function AdminPage() {
   const userInputRef = useRef<HTMLInputElement>(null);
   const [manual, setManual] = useState({ employee_id: "", name: "", date_of_birth: "" });
   const [adding, setAdding] = useState(false);
+  const [manualMatch, setManualMatch] = useState({
+    home_team: "",
+    away_team: "",
+    match_time: "",
+    stage_name: "",
+  });
+  const [addingMatch, setAddingMatch] = useState(false);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 10;
@@ -407,6 +416,124 @@ function AdminPage() {
           </button>
         </section>
       )}
+
+      <section className="glossy-card p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 size={16} style={{ color: "#FF6500" }} />
+          <h3 className="text-sm font-bold uppercase tracking-wider">Add Match Manually</h3>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Quickly add a single fixture without uploading a spreadsheet. It will be inserted as
+          <span className="font-semibold"> scheduled</span> with both scores at 0.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label className="space-y-1">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Home Team</span>
+            <input
+              value={manualMatch.home_team}
+              onChange={(e) => setManualMatch((m) => ({ ...m, home_team: e.target.value }))}
+              placeholder="e.g. Brazil"
+              maxLength={64}
+              className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[#FF6500] outline-none"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Away Team</span>
+            <input
+              value={manualMatch.away_team}
+              onChange={(e) => setManualMatch((m) => ({ ...m, away_team: e.target.value }))}
+              placeholder="e.g. Argentina"
+              maxLength={64}
+              className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[#FF6500] outline-none"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Match Date &amp; Time</span>
+            <input
+              type="datetime-local"
+              value={manualMatch.match_time}
+              onChange={(e) => setManualMatch((m) => ({ ...m, match_time: e.target.value }))}
+              className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[#FF6500] outline-none"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Stage / Group</span>
+            <input
+              list="stage-options"
+              value={manualMatch.stage_name}
+              onChange={(e) => setManualMatch((m) => ({ ...m, stage_name: e.target.value }))}
+              placeholder="Group A, Round of 16, Friendly…"
+              maxLength={64}
+              className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[#FF6500] outline-none"
+            />
+            <datalist id="stage-options">
+              <option value="Group A" />
+              <option value="Group B" />
+              <option value="Group C" />
+              <option value="Group D" />
+              <option value="Group E" />
+              <option value="Group F" />
+              <option value="Group G" />
+              <option value="Group H" />
+              <option value="Round of 32" />
+              <option value="Round of 16" />
+              <option value="Quarter-finals" />
+              <option value="Semi-finals" />
+              <option value="Third-place Play-off" />
+              <option value="Final" />
+              <option value="Friendly" />
+            </datalist>
+          </label>
+        </div>
+        <button
+          type="button"
+          disabled={
+            addingMatch ||
+            !manualMatch.home_team.trim() ||
+            !manualMatch.away_team.trim() ||
+            !manualMatch.match_time.trim()
+          }
+          onClick={async () => {
+            if (!profile) return;
+            if (
+              manualMatch.home_team.trim().toLowerCase() ===
+              manualMatch.away_team.trim().toLowerCase()
+            ) {
+              toast.error("Home and away teams must be different.");
+              return;
+            }
+            setAddingMatch(true);
+            try {
+              await addMatchFn({
+                data: {
+                  adminEmployeeId: profile.employee_id,
+                  home_team: manualMatch.home_team.trim(),
+                  away_team: manualMatch.away_team.trim(),
+                  match_time: manualMatch.match_time,
+                  stage_name: manualMatch.stage_name.trim() || null,
+                },
+              });
+              toast.success(
+                `Match added: ${manualMatch.home_team} vs ${manualMatch.away_team}`,
+              );
+              setManualMatch({ home_team: "", away_team: "", match_time: "", stage_name: "" });
+              await queryClient.invalidateQueries({ queryKey: ["matches"] });
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Failed to add match");
+            } finally {
+              setAddingMatch(false);
+            }
+          }}
+          className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold uppercase tracking-wider text-white flex items-center justify-center gap-2 disabled:opacity-60"
+          style={{
+            background: "linear-gradient(135deg, #FF6500 0%, #ff8a3d 100%)",
+            boxShadow: "0 10px 30px -10px rgba(255,101,0,0.55)",
+          }}
+        >
+          <UserPlus size={16} />
+          {addingMatch ? "Adding…" : "Add Match"}
+        </button>
+      </section>
         </>
       )}
 
