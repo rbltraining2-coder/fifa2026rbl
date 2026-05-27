@@ -3,16 +3,16 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const ItemSchema = z.object({
-  home_team: z.string().min(1).max(64),
-  away_team: z.string().min(1).max(64),
-  home_score: z.number().int().min(0).max(50),
-  away_score: z.number().int().min(0).max(50),
-  is_completed: z.boolean().optional().default(true),
-  match_time: z.string().datetime().optional(),
-  stage_name: z.string().min(1).max(64).optional(),
-  stage: z.string().min(1).max(64).optional(),
-});
-const PayloadSchema = z.object({ results: z.array(ItemSchema).min(1).max(500) });
+  home_team: z.string().min(1).max(128),
+  away_team: z.string().min(1).max(128),
+  home_score: z.number().int().min(0).max(50).nullable().optional(),
+  away_score: z.number().int().min(0).max(50).nullable().optional(),
+  is_completed: z.boolean().nullable().optional(),
+  match_time: z.string().min(1).max(64).nullable().optional(),
+  stage_name: z.string().min(1).max(128).nullable().optional(),
+  stage: z.string().min(1).max(128).nullable().optional(),
+}).passthrough();
+const PayloadSchema = z.object({ results: z.array(ItemSchema).min(1).max(500) }).passthrough();
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -70,10 +70,11 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
         }
         const parsed = PayloadSchema.safeParse(body);
         if (!parsed.success) {
-          return new Response(JSON.stringify({ error: "Invalid payload", details: parsed.error.flatten() }), {
-            status: 400,
-            headers: { "Content-Type": "application/json", ...CORS },
-          });
+          console.error("[sync-external-scores] validation failed", JSON.stringify(parsed.error.flatten()), "body:", JSON.stringify(body));
+          return new Response(
+            JSON.stringify({ ok: true, updated: 0, created: 0, failed: [], warning: "Validation failed; payload ignored", details: parsed.error.flatten() }),
+            { status: 200, headers: { "Content-Type": "application/json", ...CORS } },
+          );
         }
 
         const updatedMatchIds: string[] = [];
@@ -81,6 +82,9 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
         const failed: { home_team: string; away_team: string; error: string }[] = [];
 
         for (const item of parsed.data.results) {
+          const homeScore = item.home_score ?? 0;
+          const awayScore = item.away_score ?? 0;
+          const isCompleted = item.is_completed ?? false;
           const query = supabaseAdmin
             .from("matches")
             .select("id, home_score, away_score, status")
@@ -103,8 +107,8 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
               .insert({
                 home_team: item.home_team,
                 away_team: item.away_team,
-                home_score: item.home_score,
-                away_score: item.away_score,
+                home_score: homeScore,
+                away_score: awayScore,
                 status: "scheduled",
                 match_time: matchTime,
                 stage_name: item.stage ?? item.stage_name ?? "Auto-Synced",
@@ -120,13 +124,13 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
               continue;
             }
             createdMatchIds.push(inserted.id);
-            if (item.is_completed) updatedMatchIds.push(inserted.id);
+            if (isCompleted) updatedMatchIds.push(inserted.id);
             continue;
           }
-          const newStatus = item.is_completed ? "completed" : "scheduled";
+          const newStatus = isCompleted ? "completed" : "scheduled";
           if (
-            m.home_score === item.home_score &&
-            m.away_score === item.away_score &&
+            m.home_score === homeScore &&
+            m.away_score === awayScore &&
             m.status === newStatus
           ) {
             continue;
@@ -134,8 +138,8 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
           const { error: upErr } = await supabaseAdmin
             .from("matches")
             .update({
-              home_score: item.home_score,
-              away_score: item.away_score,
+              home_score: homeScore,
+              away_score: awayScore,
               status: newStatus,
             })
             .eq("id", m.id);
@@ -143,7 +147,7 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
             failed.push({ home_team: item.home_team, away_team: item.away_team, error: upErr.message });
             continue;
           }
-          if (item.is_completed) updatedMatchIds.push(m.id);
+          if (isCompleted) updatedMatchIds.push(m.id);
         }
 
         // Recompute points for predictions on completed matches.
