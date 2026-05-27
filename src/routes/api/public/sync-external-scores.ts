@@ -12,7 +12,7 @@ const ItemSchema = z.object({
   stage_name: z.string().min(1).max(64).optional(),
   stage: z.string().min(1).max(64).optional(),
 });
-const PayloadSchema = z.object({ results: z.array(ItemSchema).min(1).max(200) });
+const PayloadSchema = z.object({ results: z.array(ItemSchema).min(1).max(500) });
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -81,11 +81,13 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
         const failed: { home_team: string; away_team: string; error: string }[] = [];
 
         for (const item of parsed.data.results) {
-          const { data: m, error: findErr } = await supabaseAdmin
+          const query = supabaseAdmin
             .from("matches")
             .select("id, home_score, away_score, status")
             .eq("home_team", item.home_team)
-            .eq("away_team", item.away_team)
+            .eq("away_team", item.away_team);
+          if (item.match_time) query.eq("match_time", item.match_time);
+          const { data: m, error: findErr } = await query
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
