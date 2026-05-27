@@ -568,6 +568,90 @@ function AdminPage() {
           </section>
         </div>
       )}
+
+      {tab === "sync" && <AutoSyncGuide />}
+    </div>
+  );
+}
+
+function AutoSyncGuide() {
+  const endpoint =
+    "https://project--e068a158-2a0c-4115-b745-cfbb20d3e7c5.lovable.app/api/public/sync-external-scores";
+  const samplePayload = `{
+  "results": [
+    { "home_team": "Brazil", "away_team": "Argentina", "home_score": 2, "away_score": 1, "is_completed": true }
+  ]
+}`;
+  const curlExample = `curl -X POST '${endpoint}' \\
+  -H 'Authorization: Bearer <SCORE_SYNC_SECRET>' \\
+  -H 'Content-Type: application/json' \\
+  -d '${samplePayload.replace(/\n/g, " ")}'`;
+  return (
+    <div className="space-y-4">
+      <section className="glossy-card p-5 space-y-3">
+        <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--primary-glow)]">
+          Hands-Free Score Sync
+        </h3>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          A secure public endpoint accepts live match results, updates the
+          schedule, marks matches as completed, and recalculates the global
+          leaderboard automatically.
+        </p>
+        <div className="rounded-lg bg-black/40 border border-white/10 p-3 text-[11px] font-mono break-all">
+          POST {endpoint}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Authentication header:{" "}
+          <span className="font-mono text-white/80">Authorization: Bearer &lt;SCORE_SYNC_SECRET&gt;</span>
+        </p>
+        <pre className="rounded-lg bg-black/40 border border-white/10 p-3 text-[11px] font-mono whitespace-pre-wrap overflow-x-auto">{samplePayload}</pre>
+      </section>
+
+      <section className="glossy-card p-5 space-y-3">
+        <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--primary-glow)]">
+          GitHub Actions Setup (15 min cron)
+        </h3>
+        <ol className="text-xs text-white/85 leading-relaxed list-decimal pl-5 space-y-2">
+          <li>
+            Create a free GitHub repository (public or private).
+          </li>
+          <li>
+            Copy <span className="font-mono">scraper.js</span> and{" "}
+            <span className="font-mono">.github/workflows/score_sync.yml</span>{" "}
+            from this project into the repo root.
+          </li>
+          <li>
+            In the repo: <b>Settings → Secrets and variables → Actions → New
+            repository secret</b>, add:
+            <ul className="list-disc pl-5 mt-1 space-y-1">
+              <li><span className="font-mono">SYNC_ENDPOINT</span> = <span className="font-mono break-all">{endpoint}</span></li>
+              <li><span className="font-mono">SCORE_SYNC_SECRET</span> = the value configured in Lovable Cloud secrets</li>
+              <li><span className="font-mono">SUPABASE_URL</span> and <span className="font-mono">SUPABASE_SERVICE_ROLE_KEY</span> (optional, only if you extend the scraper to query the DB directly)</li>
+            </ul>
+          </li>
+          <li>
+            Commit and push. Open the <b>Actions</b> tab and run{" "}
+            <span className="font-mono">FIFA 2026 Score Sync</span> once via
+            <b> workflow_dispatch</b> to confirm the wiring.
+          </li>
+          <li>
+            The workflow then runs automatically every 15 minutes
+            (<span className="font-mono">*/15 * * * *</span>) for the duration of
+            the tournament — no manual action required.
+          </li>
+        </ol>
+      </section>
+
+      <section className="glossy-card p-5 space-y-3">
+        <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--primary-glow)]">
+          Manual Test (cURL)
+        </h3>
+        <pre className="rounded-lg bg-black/40 border border-white/10 p-3 text-[11px] font-mono whitespace-pre-wrap overflow-x-auto">{curlExample}</pre>
+        <p className="text-[11px] text-muted-foreground">
+          A 200 response with <span className="font-mono">{`{ ok: true, updated: N }`}</span> confirms
+          the endpoint, secret, and team-name match are all working.
+        </p>
+      </section>
     </div>
   );
 }
