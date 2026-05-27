@@ -122,24 +122,24 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
 
         // Recompute points for predictions on completed matches.
         if (updatedMatchIds.length > 0) {
+          const { data: fresh } = await supabaseAdmin
+            .from("matches")
+            .select("id, match_time, home_score, away_score")
+            .in("id", updatedMatchIds);
+          const matchById = new Map((fresh ?? []).map((m) => [m.id, m]));
+
           const { data: preds } = await supabaseAdmin
             .from("predictions")
             .select("id, user_id, match_id, winner, predicted_home_score, predicted_away_score, total_goals_bucket, created_at")
             .in("match_id", updatedMatchIds);
-
-          const matchById = new Map((matches ?? []).map((m) => [m.id, m]));
 
           for (const p of preds ?? []) {
             const m = matchById.get(p.match_id);
             if (!m || m.home_score == null || m.away_score == null) continue;
             const earned = computePoints(p, {
               match_time: m.match_time,
-              home_score: p.match_id ? (parsed.data.results.find(
-                (r) => norm(r.home_team) === norm(m.home_team) && norm(r.away_team) === norm(m.away_team),
-              )?.home_score ?? m.home_score) : m.home_score,
-              away_score: parsed.data.results.find(
-                (r) => norm(r.home_team) === norm(m.home_team) && norm(r.away_team) === norm(m.away_team),
-              )?.away_score ?? m.away_score,
+              home_score: m.home_score,
+              away_score: m.away_score,
             });
             await supabaseAdmin.from("predictions").update({ points_earned: earned }).eq("id", p.id);
           }
