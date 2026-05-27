@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { flagCode } from "@/lib/flags";
 
 const ItemSchema = z.object({
   home_team: z.string().min(1).max(64),
@@ -8,6 +9,8 @@ const ItemSchema = z.object({
   home_score: z.number().int().min(0).max(50),
   away_score: z.number().int().min(0).max(50),
   is_completed: z.boolean().optional().default(true),
+  match_time: z.string().datetime().optional(),
+  stage_name: z.string().min(1).max(64).optional(),
 });
 const PayloadSchema = z.object({ results: z.array(ItemSchema).min(1).max(200) });
 
@@ -89,15 +92,44 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
 
         const updatedMatchIds: string[] = [];
         const notMatched: { home_team: string; away_team: string }[] = [];
+        const createdMatchIds: string[] = [];
+        const invalidTeams: { home_team: string; away_team: string }[] = [];
 
         for (const item of parsed.data.results) {
-          const m = (matches ?? []).find(
+          let m = (matches ?? []).find(
             (row) =>
               norm(row.home_team) === norm(item.home_team) &&
               norm(row.away_team) === norm(item.away_team),
           );
           if (!m) {
-            notMatched.push({ home_team: item.home_team, away_team: item.away_team });
+            // Auto-create the match if both team names are valid known countries.
+            const homeValid = flagCode(item.home_team) !== null;
+            const awayValid = flagCode(item.away_team) !== null;
+            if (!homeValid || !awayValid) {
+              invalidTeams.push({ home_team: item.home_team, away_team: item.away_team });
+              continue;
+            }
+            const newStatus = item.is_completed ? "completed" : "live";
+            const matchTime = item.match_time ?? new Date().toISOString();
+            const { data: inserted, error: insertErr } = await supabaseAdmin
+              .from("matches")
+              .insert({
+                home_team: item.home_team,
+                away_team: item.away_team,
+                home_score: item.home_score,
+                away_score: item.away_score,
+                status: newStatus,
+                match_time: matchTime,
+                stage_name: item.stage_name ?? "Auto-Synced",
+              })
+              .select("id, home_team, away_team, home_score, away_score, status, match_time")
+              .single();
+            if (insertErr || !inserted) {
+              notMatched.push({ home_team: item.home_team, away_team: item.away_team });
+              continue;
+            }
+            createdMatchIds.push(inserted.id);
+            if (item.is_completed) updatedMatchIds.push(inserted.id);
             continue;
           }
           const newStatus = item.is_completed ? "completed" : "live";
@@ -168,6 +200,8 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
           JSON.stringify({
             ok: true,
             updated: updatedMatchIds.length,
+            created: createdMatchIds.length,
+            invalid_teams: invalidTeams,
             not_matched: notMatched,
           }),
           { status: 200, headers: { "Content-Type": "application/json", ...CORS } },
