@@ -144,7 +144,9 @@ function HomePage() {
                     </p>
                     <p className="text-[11px] text-muted-foreground">
                       {new Date(m.match_time).toLocaleString(undefined, {
-                        weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+                        weekday: "short", day: "numeric", month: "short",
+                        hour: "2-digit", minute: "2-digit", hour12: true,
+                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                       })}
                     </p>
                   </div>
