@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { flagCode } from "@/lib/flags";
 
 const ItemSchema = z.object({
   home_team: z.string().min(1).max(64),
@@ -93,7 +92,6 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
         const updatedMatchIds: string[] = [];
         const notMatched: { home_team: string; away_team: string }[] = [];
         const createdMatchIds: string[] = [];
-        const invalidTeams: { home_team: string; away_team: string }[] = [];
 
         for (const item of parsed.data.results) {
           let m = (matches ?? []).find(
@@ -102,15 +100,16 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
               norm(row.away_team) === norm(item.away_team),
           );
           if (!m) {
-            // Auto-create the match if both team names are valid known countries.
-            const homeValid = flagCode(item.home_team) !== null;
-            const awayValid = flagCode(item.away_team) !== null;
-            if (!homeValid || !awayValid) {
-              invalidTeams.push({ home_team: item.home_team, away_team: item.away_team });
-              continue;
-            }
-            const newStatus = item.is_completed ? "completed" : "live";
+            // Auto-create the match for ANY incoming team names. Unknown
+            // countries gracefully fall back to an initial-letter badge in
+            // the UI via TeamFlag, so there's no need to gate on flagCode.
             const matchTime = item.match_time ?? new Date().toISOString();
+            const kickoff = new Date(matchTime).getTime();
+            const newStatus = item.is_completed
+              ? "completed"
+              : kickoff > Date.now()
+              ? "scheduled"
+              : "live";
             const { data: inserted, error: insertErr } = await supabaseAdmin
               .from("matches")
               .insert({
@@ -201,7 +200,6 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
             ok: true,
             updated: updatedMatchIds.length,
             created: createdMatchIds.length,
-            invalid_teams: invalidTeams,
             not_matched: notMatched,
           }),
           { status: 200, headers: { "Content-Type": "application/json", ...CORS } },
