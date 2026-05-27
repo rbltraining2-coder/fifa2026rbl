@@ -44,10 +44,6 @@ function computePoints(p: {
   return pts;
 }
 
-function norm(s: string) {
-  return s.trim().toLowerCase();
-}
-
 export const Route = createFileRoute("/api/public/sync-external-scores")({
   server: {
     handlers: {
@@ -80,44 +76,24 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
           });
         }
 
-        const { data: matches, error: matchesErr } = await supabaseAdmin
-          .from("matches")
-          .select("id, home_team, away_team, home_score, away_score, status, match_time");
-        if (matchesErr) {
-          return new Response(JSON.stringify({ error: matchesErr.message }), {
-            status: 500,
-            headers: { "Content-Type": "application/json", ...CORS },
-          });
-        }
-
         const updatedMatchIds: string[] = [];
-        const notMatched: { home_team: string; away_team: string }[] = [];
         const createdMatchIds: string[] = [];
+        const failed: { home_team: string; away_team: string; error: string }[] = [];
 
         for (const item of parsed.data.results) {
-          const itemKickoff = item.match_time ? new Date(item.match_time).getTime() : null;
-          // Match if teams align AND (no match_time provided OR kickoff within 24h of an existing fixture).
-          const m = (matches ?? []).find((row) => {
-            const teamsMatch =
-              norm(row.home_team) === norm(item.home_team) &&
-              norm(row.away_team) === norm(item.away_team);
-            if (!teamsMatch) return false;
-            if (itemKickoff === null) return true;
-            const rowKickoff = new Date(row.match_time).getTime();
-            return Math.abs(rowKickoff - itemKickoff) <= 24 * 60 * 60 * 1000;
-          });
+          const { data: m, error: findErr } = await supabaseAdmin
+            .from("matches")
+            .select("id, home_score, away_score, status")
+            .eq("home_team", item.home_team)
+            .eq("away_team", item.away_team)
+            .maybeSingle();
+          if (findErr) {
+            failed.push({ home_team: item.home_team, away_team: item.away_team, error: findErr.message });
+            continue;
+          }
+
           if (!m) {
-            // Auto-create the match for ANY incoming team names. Teams are
-            // stored as plain text on the matches row, so unknown countries
-            // gracefully fall back to an initial-letter badge in the UI via
-            // TeamFlag — no separate teams/countries table to upsert into.
             const matchTime = item.match_time ?? new Date().toISOString();
-            const kickoff = new Date(matchTime).getTime();
-            const newStatus = item.is_completed
-              ? "completed"
-              : kickoff > Date.now()
-              ? "scheduled"
-              : "live";
             const { data: inserted, error: insertErr } = await supabaseAdmin
               .from("matches")
               .insert({
@@ -125,21 +101,25 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
                 away_team: item.away_team,
                 home_score: item.home_score,
                 away_score: item.away_score,
-                status: newStatus,
+                status: "scheduled",
                 match_time: matchTime,
                 stage_name: item.stage ?? item.stage_name ?? "Auto-Synced",
               })
               .select("id, home_team, away_team, home_score, away_score, status, match_time")
               .single();
             if (insertErr || !inserted) {
-              notMatched.push({ home_team: item.home_team, away_team: item.away_team });
+              failed.push({
+                home_team: item.home_team,
+                away_team: item.away_team,
+                error: insertErr?.message ?? "Insert failed",
+              });
               continue;
             }
             createdMatchIds.push(inserted.id);
             if (item.is_completed) updatedMatchIds.push(inserted.id);
             continue;
           }
-          const newStatus = item.is_completed ? "completed" : "live";
+          const newStatus = item.is_completed ? "completed" : "scheduled";
           if (
             m.home_score === item.home_score &&
             m.away_score === item.away_score &&
@@ -155,7 +135,10 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
               status: newStatus,
             })
             .eq("id", m.id);
-          if (upErr) continue;
+          if (upErr) {
+            failed.push({ home_team: item.home_team, away_team: item.away_team, error: upErr.message });
+            continue;
+          }
           if (item.is_completed) updatedMatchIds.push(m.id);
         }
 
@@ -208,7 +191,7 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
             ok: true,
             updated: updatedMatchIds.length,
             created: createdMatchIds.length,
-            not_matched: notMatched,
+            failed,
           }),
           { status: 200, headers: { "Content-Type": "application/json", ...CORS } },
         );
