@@ -3,16 +3,16 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const ItemSchema = z.object({
-  home_team: z.string().min(1).max(64),
-  away_team: z.string().min(1).max(64),
-  home_score: z.number().int().min(0).max(50),
-  away_score: z.number().int().min(0).max(50),
-  is_completed: z.boolean().optional().default(true),
-  match_time: z.string().datetime().optional(),
-  stage_name: z.string().min(1).max(64).optional(),
-  stage: z.string().min(1).max(64).optional(),
-});
-const PayloadSchema = z.object({ results: z.array(ItemSchema).min(1).max(500) });
+  home_team: z.string().min(1).max(128),
+  away_team: z.string().min(1).max(128),
+  home_score: z.number().int().min(0).max(50).nullable().optional(),
+  away_score: z.number().int().min(0).max(50).nullable().optional(),
+  is_completed: z.boolean().nullable().optional(),
+  match_time: z.string().min(1).max(64).nullable().optional(),
+  stage_name: z.string().min(1).max(128).nullable().optional(),
+  stage: z.string().min(1).max(128).nullable().optional(),
+}).passthrough();
+const PayloadSchema = z.object({ results: z.array(ItemSchema).min(1).max(500) }).passthrough();
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
