@@ -14,6 +14,7 @@ import {
   addEligibleEmployee,
   listAllUsers,
   deleteUserEverywhere,
+  addMatchManually,
 } from "@/lib/admin.functions";
 
 const ADMIN_EMPLOYEE_ID = "50161635";
@@ -71,6 +72,7 @@ function AdminPage() {
   const addUserFn = useServerFn(addEligibleEmployee);
   const listUsersFn = useServerFn(listAllUsers);
   const deleteUserFn = useServerFn(deleteUserEverywhere);
+  const addMatchFn = useServerFn(addMatchManually);
   const [rows, setRows] = useState<Row[]>([]);
   const [filename, setFilename] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -83,6 +85,13 @@ function AdminPage() {
   const userInputRef = useRef<HTMLInputElement>(null);
   const [manual, setManual] = useState({ employee_id: "", name: "", date_of_birth: "" });
   const [adding, setAdding] = useState(false);
+  const [manualMatch, setManualMatch] = useState({
+    home_team: "",
+    away_team: "",
+    match_time: "",
+    stage_name: "",
+  });
+  const [addingMatch, setAddingMatch] = useState(false);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 10;
