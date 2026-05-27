@@ -18,6 +18,7 @@ import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppPredictionsRouteImport } from './routes/_app/predictions'
 import { Route as AppLeaderboardRouteImport } from './routes/_app/leaderboard'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
+import { Route as ApiPublicSyncExternalScoresRouteImport } from './routes/api/public/sync-external-scores'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -63,6 +64,12 @@ const AppAdminRoute = AppAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiPublicSyncExternalScoresRoute =
+  ApiPublicSyncExternalScoresRouteImport.update({
+    id: '/api/public/sync-external-scores',
+    path: '/api/public/sync-external-scores',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/predictions': typeof AppPredictionsRoute
   '/profile': typeof AppProfileRoute
   '/rewards': typeof AppRewardsRoute
+  '/api/public/sync-external-scores': typeof ApiPublicSyncExternalScoresRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -83,6 +91,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AppProfileRoute
   '/rewards': typeof AppRewardsRoute
   '/': typeof AppIndexRoute
+  '/api/public/sync-external-scores': typeof ApiPublicSyncExternalScoresRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -95,6 +104,7 @@ export interface FileRoutesById {
   '/_app/profile': typeof AppProfileRoute
   '/_app/rewards': typeof AppRewardsRoute
   '/_app/': typeof AppIndexRoute
+  '/api/public/sync-external-scores': typeof ApiPublicSyncExternalScoresRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/predictions'
     | '/profile'
     | '/rewards'
+    | '/api/public/sync-external-scores'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/rewards'
     | '/'
+    | '/api/public/sync-external-scores'
   id:
     | '__root__'
     | '/_app'
@@ -128,12 +140,14 @@ export interface FileRouteTypes {
     | '/_app/profile'
     | '/_app/rewards'
     | '/_app/'
+    | '/api/public/sync-external-scores'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiPublicSyncExternalScoresRoute: typeof ApiPublicSyncExternalScoresRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -201,6 +215,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/public/sync-external-scores': {
+      id: '/api/public/sync-external-scores'
+      path: '/api/public/sync-external-scores'
+      fullPath: '/api/public/sync-external-scores'
+      preLoaderRoute: typeof ApiPublicSyncExternalScoresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -228,17 +249,8 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiPublicSyncExternalScoresRoute: ApiPublicSyncExternalScoresRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
