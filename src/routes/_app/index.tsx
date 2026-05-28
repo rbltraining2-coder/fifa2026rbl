@@ -62,15 +62,20 @@ function HomePage() {
   const predicted = predictedIds ?? new Set<string>();
 
   const now = Date.now();
+  const fourHoursMs = 4 * 60 * 60 * 1000;
   const dayMs = 24 * 60 * 60 * 1000;
-  const today = (matches ?? []).filter((m) => {
+
+  const futureMatches = (matches ?? [])
+    .filter((m) => m.status !== "completed" && new Date(m.match_time).getTime() > now)
+    .sort((a, b) => new Date(a.match_time).getTime() - new Date(b.match_time).getTime());
+
+  const today = futureMatches.filter((m) => {
     const t = new Date(m.match_time).getTime();
-    return m.status !== "completed" && t - now < dayMs && t - now > -2 * 60 * 60 * 1000;
+    return t - now < fourHoursMs;
   });
-  const upcoming = (matches ?? []).filter((m) => {
-    const t = new Date(m.match_time).getTime();
-    return m.status !== "completed" && t - now >= dayMs;
-  });
+
+  const todayIds = new Set(today.map((m) => m.id));
+  const upcoming = futureMatches.filter((m) => !todayIds.has(m.id));
 
   return (
     <div className="space-y-6">
