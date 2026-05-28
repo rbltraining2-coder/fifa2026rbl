@@ -220,6 +220,57 @@ export type Database = {
           },
         ]
       }
+      sync_logs: {
+        Row: {
+          created: number
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          failed_count: number
+          failures: Json | null
+          id: string
+          predictions_scored: number
+          processed: number
+          received: number
+          source: string
+          status: string
+          updated: number
+          users_refreshed: number
+        }
+        Insert: {
+          created?: number
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          failed_count?: number
+          failures?: Json | null
+          id?: string
+          predictions_scored?: number
+          processed?: number
+          received?: number
+          source?: string
+          status?: string
+          updated?: number
+          users_refreshed?: number
+        }
+        Update: {
+          created?: number
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          failed_count?: number
+          failures?: Json | null
+          id?: string
+          predictions_scored?: number
+          processed?: number
+          received?: number
+          source?: string
+          status?: string
+          updated?: number
+          users_refreshed?: number
+        }
+        Relationships: []
+      }
       votes: {
         Row: {
           created_at: string

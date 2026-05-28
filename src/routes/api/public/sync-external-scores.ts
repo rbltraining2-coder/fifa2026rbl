@@ -124,10 +124,19 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
     handlers: {
       OPTIONS: async () => new Response(null, { status: 204, headers: CORS }),
       POST: async ({ request }) => {
+        const startedAt = Date.now();
         const auth = request.headers.get("authorization") ?? "";
         const token = auth.replace(/^Bearer\s+/i, "").trim();
         const expected = process.env.SCORE_SYNC_SECRET;
         if (!expected || !token || token !== expected) {
+          try {
+            await supabaseAdmin.from("sync_logs").insert({
+              source: "score-sync",
+              status: "unauthorized",
+              error_message: "Invalid or missing bearer token",
+              duration_ms: Date.now() - startedAt,
+            });
+          } catch {}
           return new Response(JSON.stringify({ error: "Unauthorized" }), {
             status: 401,
             headers: { "Content-Type": "application/json", ...CORS },
@@ -332,6 +341,23 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
           }
         }
 
+        try {
+          await supabaseAdmin.from("sync_logs").insert({
+            source: "score-sync",
+            status: failed.length > 0 ? "partial" : "success",
+            received: rawItems.length,
+            processed: items.length,
+            updated: updatedMatchIds.length,
+            created: createdMatchIds.length,
+            predictions_scored: predictionsUpdated,
+            users_refreshed: usersRefreshed,
+            failed_count: failed.length,
+            failures: failed.length > 0 ? failed : null,
+            duration_ms: Date.now() - startedAt,
+          });
+        } catch (err: any) {
+          console.error("[sync-external-scores] failed to log run:", err?.message ?? err);
+        }
         return ok200({
           ok: true,
           received: rawItems.length,
