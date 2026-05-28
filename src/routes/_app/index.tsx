@@ -63,7 +63,6 @@ function HomePage() {
 
   const now = Date.now();
   const fourHoursMs = 4 * 60 * 60 * 1000;
-  const dayMs = 24 * 60 * 60 * 1000;
 
   const futureMatches = (matches ?? [])
     .filter((m) => m.status !== "completed" && new Date(m.match_time).getTime() > now)
