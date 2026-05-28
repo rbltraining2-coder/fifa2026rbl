@@ -68,8 +68,8 @@ function LeaderboardPage() {
               <span className="w-7 text-center text-sm font-bold text-muted-foreground tabular-nums">{rank}</span>
               <Avatar url={r.avatar_url} code={r.employee_id} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">{r.name || r.employee_code}</p>
-                <p className="text-[11px] text-muted-foreground">{r.employee_code}</p>
+                <p className="text-sm font-semibold truncate">{r.name || r.employee_id}</p>
+                <p className="text-[11px] text-muted-foreground">{r.employee_id}</p>
               </div>
               <span className="text-sm font-black" style={{ color: "var(--success)" }}>
                 {r.total_points} PTS
