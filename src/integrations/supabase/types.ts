@@ -47,6 +47,7 @@ export type Database = {
           home_team: string
           id: string
           match_time: string
+          stadium: string | null
           stage_name: string | null
           status: string
         }
@@ -61,6 +62,7 @@ export type Database = {
           home_team: string
           id?: string
           match_time: string
+          stadium?: string | null
           stage_name?: string | null
           status?: string
         }
@@ -75,6 +77,7 @@ export type Database = {
           home_team?: string
           id?: string
           match_time?: string
+          stadium?: string | null
           stage_name?: string | null
           status?: string
         }
