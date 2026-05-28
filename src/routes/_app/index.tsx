@@ -110,7 +110,7 @@ function HomePage() {
         </div>
         {today.length === 0 ? (
           <div className="glossy-card p-6 text-center text-muted-foreground text-sm">
-            No matches in the next 24 hours.
+            No matches in the next few hours.
           </div>
         ) : (
           <div className="flex flex-col gap-4">
