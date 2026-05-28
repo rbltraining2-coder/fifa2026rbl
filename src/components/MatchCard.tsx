@@ -19,36 +19,64 @@ export function FeatureMatchCard({
   match,
   onPredict,
   alreadyPredicted = false,
+  featured = false,
 }: {
   match: Match;
   onPredict: () => void;
   alreadyPredicted?: boolean;
+  featured?: boolean;
 }) {
   const w = getPredictionWindow(match.match_time);
   const matchTimeStr = formatIstShort(match.match_time);
+  const isLive = match.status === "live" || match.status === "halftime";
+  const isCompleted = match.status === "completed";
+  const showScore = (isLive || isCompleted) && match.home_score != null && match.away_score != null;
   return (
-    <div className="glossy-card w-full p-5 tilt-card">
+    <div className={`glossy-card w-full p-5 tilt-card transition-transform duration-200 hover:-translate-y-0.5 ${featured ? "featured-match" : ""}`}>
       <div className="accent-strip" />
-      <div className="flex justify-end mb-2">
-        <Countdown to={match.match_time} />
+      <div className="flex items-center justify-between mb-2 gap-2">
+        {featured ? (
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--primary-glow)]">
+            ★ Featured Fixture
+          </span>
+        ) : <span />}
+        <div className="flex items-center gap-2">
+          {isLive && <span className="live-pill">{match.status === "halftime" ? "HT" : "LIVE"}</span>}
+          {!isLive && !isCompleted && <Countdown to={match.match_time} />}
+        </div>
       </div>
       <div className="text-center mb-1">
         <span className="text-xs font-bold" style={{ color: "#D1D4D1", letterSpacing: "0.12em" }}>
           {matchTimeStr} <span className="opacity-70">{IST_LABEL}</span>
         </span>
       </div>
-      <div className="flex items-center justify-between mt-1">
-        <TeamBadge name={match.home_team} />
-        <span className="text-2xl font-black text-muted-foreground">VS</span>
-        <TeamBadge name={match.away_team} />
+      <div className="flex items-center justify-between mt-3 gap-2">
+        <TeamBadge name={match.home_team} featured={featured} />
+        {showScore ? (
+          <div className="flex items-center gap-2 px-2">
+            <span className={`score-display ${isLive ? "live" : ""}`}>{match.home_score}</span>
+            <span className="text-base font-bold text-muted-foreground">—</span>
+            <span className={`score-display ${isLive ? "live" : ""}`}>{match.away_score}</span>
+          </div>
+        ) : (
+          <span className={`${featured ? "text-3xl" : "text-2xl"} font-black text-muted-foreground tracking-tight`}>VS</span>
+        )}
+        <TeamBadge name={match.away_team} featured={featured} />
       </div>
+      {isCompleted && (
+        <p className="mt-3 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Full Time</p>
+      )}
       <button
         onClick={onPredict}
-        disabled={!w.canPredict || alreadyPredicted}
+        disabled={!w.canPredict || alreadyPredicted || isLive || isCompleted}
         className="btn-glossy w-full mt-4"
-        style={!w.canPredict || alreadyPredicted ? { filter: "grayscale(0.4)", opacity: 0.7 } : undefined}
+        style={(!w.canPredict || alreadyPredicted || isLive || isCompleted) ? { filter: "grayscale(0.4)", opacity: 0.7 } : undefined}
       >
-        {alreadyPredicted
+        {isCompleted
+          ? "Full Time"
+          : isLive
+          ? "Match In Progress"
+          : alreadyPredicted
           ? "Prediction Submitted"
           : w.state === "locked"
           ? "Locked"
@@ -70,19 +98,47 @@ export function FeatureMatchCard({
   );
 }
 
-function TeamBadge({ name }: { name: string }) {
+function TeamBadge({ name, featured = false }: { name: string; featured?: boolean }) {
+  const size = featured ? 64 : 56;
+  const ringSize = featured ? "w-16 h-16" : "w-14 h-14";
   return (
-    <div className="flex flex-col items-center gap-2 w-[88px]">
+    <div className={`flex flex-col items-center gap-2 ${featured ? "w-[108px]" : "w-[96px]"}`}>
       <div
-        className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center"
+        className={`${ringSize} rounded-full overflow-hidden flex items-center justify-center transition-transform duration-300 hover:scale-105`}
         style={{
           background: "rgba(0,0,0,0.35)",
-          boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.15), 0 6px 18px -8px rgba(0,0,0,0.7)",
+          boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.18), 0 8px 24px -8px rgba(0,0,0,0.75), 0 0 22px -8px rgba(46,125,70,0.45)",
         }}
       >
-        <TeamFlag team={name} size={56} />
+        <TeamFlag team={name} size={size} />
       </div>
-      <span className="text-xs font-semibold text-center leading-tight">{name}</span>
+      <span className={`${featured ? "text-sm" : "text-[13px]"} font-bold text-center leading-tight tracking-tight`}>{name}</span>
+    </div>
+  );
+}
+
+export function MatchCardSkeleton() {
+  return (
+    <div className="glossy-card w-full p-5">
+      <div className="accent-strip" />
+      <div className="flex justify-end mb-2">
+        <div className="skeleton h-5 w-20" />
+      </div>
+      <div className="flex justify-center mb-3">
+        <div className="skeleton h-3 w-32" />
+      </div>
+      <div className="flex items-center justify-between mt-3">
+        <div className="flex flex-col items-center gap-2 w-[96px]">
+          <div className="skeleton w-14 h-14 rounded-full" />
+          <div className="skeleton h-3 w-16" />
+        </div>
+        <div className="skeleton h-8 w-10" />
+        <div className="flex flex-col items-center gap-2 w-[96px]">
+          <div className="skeleton w-14 h-14 rounded-full" />
+          <div className="skeleton h-3 w-16" />
+        </div>
+      </div>
+      <div className="skeleton h-11 w-full mt-4 rounded-full" />
     </div>
   );
 }

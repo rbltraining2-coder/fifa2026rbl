@@ -3,10 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { FeatureMatchCard, type Match } from "@/components/MatchCard";
+import { FeatureMatchCard, MatchCardSkeleton, type Match } from "@/components/MatchCard";
 import PredictionSheet from "@/components/PredictionSheet";
 import TeamFlag from "@/components/TeamFlag";
-import { Lock } from "lucide-react";
+import { Lock, CalendarDays, Sparkles } from "lucide-react";
 import { getPredictionWindow } from "@/lib/predictionWindow";
 import { formatIstDateTime, IST_LABEL } from "@/lib/ist";
 import promoBanner from "@/assets/promo-banner.png";
@@ -36,7 +36,7 @@ function HomePage() {
   const { profile, user } = useAuth();
   const [sheet, setSheet] = useState<Match | null>(null);
 
-  const { data: matches } = useQuery({
+  const { data: matches, isLoading } = useQuery({
     queryKey: ["matches"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -75,7 +75,10 @@ function HomePage() {
   });
 
   const todayIds = new Set(today.map((m) => m.id));
-  const upcoming = futureMatches.filter((m) => !todayIds.has(m.id));
+  const upcomingAll = futureMatches.filter((m) => !todayIds.has(m.id));
+  // Featured = next upcoming fixture when there's nothing live in the next 4h.
+  const featured = today.length === 0 ? upcomingAll[0] ?? null : null;
+  const upcoming = featured ? upcomingAll.slice(1) : upcomingAll;
 
   return (
     <div className="space-y-6">
@@ -103,32 +106,59 @@ function HomePage() {
         </p>
       </section>
 
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-bold uppercase tracking-wider">Today's Matches</h2>
-          <span className="text-xs text-muted-foreground">{today.length} live windows</span>
-        </div>
-        {today.length === 0 ? (
-          <div className="glossy-card p-6 text-center text-muted-foreground text-sm">
-            No matches in the next few hours.
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            {today.map((m) => (
-              <FeatureMatchCard
-                key={m.id}
-                match={m}
-                alreadyPredicted={predicted.has(m.id)}
-                onPredict={() => setSheet(m)}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+      {isLoading ? (
+        <section className="flex flex-col gap-4">
+          <MatchCardSkeleton />
+          <MatchCardSkeleton />
+        </section>
+      ) : (
+        <>
+          {today.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-[color:var(--destructive)] animate-pulse" />
+                  Today's Matches
+                </h2>
+                <span className="text-xs text-muted-foreground">{today.length} live window{today.length > 1 ? "s" : ""}</span>
+              </div>
+              <div className="flex flex-col gap-4">
+                {today.map((m) => (
+                  <FeatureMatchCard
+                    key={m.id}
+                    match={m}
+                    alreadyPredicted={predicted.has(m.id)}
+                    onPredict={() => setSheet(m)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
 
-      <section>
-        <h2 className="text-sm font-bold uppercase tracking-wider mb-3">Upcoming Fixtures</h2>
-        <ul className="space-y-2">
+          {featured && (
+            <section className="animate-fade-in">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                  <Sparkles size={14} className="text-[color:var(--primary-glow)]" />
+                  Next Up
+                </h2>
+                <span className="text-xs text-muted-foreground">{formatIstDateTime(featured.match_time)} {IST_LABEL}</span>
+              </div>
+              <FeatureMatchCard
+                match={featured}
+                featured
+                alreadyPredicted={predicted.has(featured.id)}
+                onPredict={() => setSheet(featured)}
+              />
+            </section>
+          )}
+
+          <section>
+            <h2 className="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+              <CalendarDays size={14} className="text-muted-foreground" />
+              Upcoming Fixtures
+            </h2>
+            <ul className="space-y-2">
           {upcoming.map((m) => {
             const w = getPredictionWindow(m.match_time, now);
             const isPredicted = predicted.has(m.id);
@@ -136,7 +166,7 @@ function HomePage() {
               <li
                 key={m.id}
                 onClick={() => w.canPredict && !isPredicted && setSheet(m)}
-                className="glossy-card px-4 py-3 flex items-center justify-between cursor-pointer hover:translate-y-[-1px] transition"
+                className="glossy-card px-4 py-3 flex items-center justify-between cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-12px_rgba(46,125,70,0.45)]"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex -space-x-2">
@@ -166,11 +196,20 @@ function HomePage() {
               </li>
             );
           })}
-          {upcoming.length === 0 && (
-            <li className="text-sm text-muted-foreground text-center py-4">No upcoming fixtures.</li>
-          )}
-        </ul>
-      </section>
+              {upcoming.length === 0 && !featured && today.length === 0 && (
+                <li className="glossy-card p-8 text-center">
+                  <CalendarDays size={28} className="mx-auto text-muted-foreground/60 mb-2" />
+                  <p className="text-sm font-semibold">No fixtures scheduled yet</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">Check back soon — the tournament hasn't started.</p>
+                </li>
+              )}
+              {upcoming.length === 0 && (featured || today.length > 0) && (
+                <li className="text-xs text-muted-foreground text-center py-3">No further fixtures yet.</li>
+              )}
+            </ul>
+          </section>
+        </>
+      )}
 
       <PredictionSheet match={sheet} onClose={() => setSheet(null)} />
     </div>

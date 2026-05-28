@@ -116,11 +116,14 @@
   body {
     background-color: var(--color-background);
     background-image:
+      radial-gradient(ellipse 80% 60% at 20% 0%, rgba(46,125,70,0.18), transparent 60%),
+      radial-gradient(ellipse 70% 50% at 80% 10%, rgba(110,60,188,0.14), transparent 65%),
+      radial-gradient(ellipse 100% 60% at 50% 100%, rgba(230,29,37,0.08), transparent 70%),
       linear-gradient(180deg, rgba(8,14,30,0.72) 0%, rgba(8,14,30,0.92) 100%),
       var(--bg-stadium, none);
-    background-size: cover, cover;
-    background-position: center, center;
-    background-repeat: no-repeat, no-repeat;
+    background-size: cover, cover, cover, cover, cover;
+    background-position: center, center, center, center, center;
+    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
     background-attachment: fixed;
     color: var(--color-foreground);
     font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
@@ -232,4 +235,99 @@
     border-top-left-radius: var(--radius-2xl);
     border-top-right-radius: var(--radius-2xl);
   }
+
+  /* Live status pill — animated pulsing red dot. */
+  .live-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: linear-gradient(135deg, #E61D25, #ff5a61);
+    color: #fff;
+    border-radius: 9999px;
+    padding: 0.2rem 0.65rem 0.2rem 0.55rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    box-shadow: 0 4px 14px -4px rgba(230,29,37,0.65), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+  .live-pill::before {
+    content: "";
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 9999px;
+    background: #fff;
+    box-shadow: 0 0 0 0 rgba(255,255,255,0.7);
+    animation: live-pulse 1.6s ease-out infinite;
+  }
+  @keyframes live-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0.7); }
+    70%  { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
+    100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  }
+
+  /* Match score display — big, bold, with subtle glow. */
+  .score-display {
+    font-variant-numeric: tabular-nums;
+    font-weight: 900;
+    font-size: 2.4rem;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    background: linear-gradient(180deg, #ffffff 0%, #cfd6e5 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 4px 24px rgba(255,255,255,0.08);
+  }
+  .score-display.live {
+    background: linear-gradient(180deg, #ffffff 0%, #ffb3b6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  /* Skeleton shimmer for loading states. */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+    border-radius: var(--radius-lg);
+  }
+  @keyframes skeleton-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Podium rise — top-3 columns slide up on mount. */
+  @keyframes podium-rise {
+    from { transform: translateY(20px) scaleY(0.7); opacity: 0; transform-origin: bottom; }
+    to   { transform: translateY(0)    scaleY(1);    opacity: 1; transform-origin: bottom; }
+  }
+  .podium-rise { animation: podium-rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+  /* Rank row highlight for the current user. */
+  @keyframes rank-glow {
+    0%, 100% { box-shadow: 0 0 0 1px var(--primary-glow), 0 8px 24px -10px rgba(46,125,70,0.55); }
+    50%      { box-shadow: 0 0 0 1px var(--primary-glow), 0 12px 36px -8px rgba(46,125,70,0.85); }
+  }
+  .rank-mine { animation: rank-glow 2.4s ease-in-out infinite; }
+
+  /* Featured upcoming match — pitch-stripe accent. */
+  .featured-match {
+    position: relative;
+    overflow: hidden;
+  }
+  .featured-match::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(90deg,
+        rgba(46,125,70,0.06) 0 40px,
+        rgba(46,125,70,0.12) 40px 80px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+  .featured-match > * { position: relative; z-index: 1; }
 }
