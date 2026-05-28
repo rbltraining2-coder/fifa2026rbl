@@ -341,6 +341,23 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
           }
         }
 
+        try {
+          await supabaseAdmin.from("sync_logs").insert({
+            source: "score-sync",
+            status: failed.length > 0 ? "partial" : "success",
+            received: rawItems.length,
+            processed: items.length,
+            updated: updatedMatchIds.length,
+            created: createdMatchIds.length,
+            predictions_scored: predictionsUpdated,
+            users_refreshed: usersRefreshed,
+            failed_count: failed.length,
+            failures: failed.length > 0 ? failed : null,
+            duration_ms: Date.now() - startedAt,
+          });
+        } catch (err: any) {
+          console.error("[sync-external-scores] failed to log run:", err?.message ?? err);
+        }
         return ok200({
           ok: true,
           received: rawItems.length,
