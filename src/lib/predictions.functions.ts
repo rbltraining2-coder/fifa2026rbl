@@ -7,7 +7,6 @@ const schema = z.object({
   winner: z.enum(["home", "draw", "away"]),
   homeScore: z.number().int().min(0).max(20),
   awayScore: z.number().int().min(0).max(20),
-  bucket: z.enum(["under_2", "between_3_4", "over_4"]),
 });
 
 export const savePrediction = createServerFn({ method: "POST" })
@@ -42,7 +41,6 @@ export const savePrediction = createServerFn({ method: "POST" })
         winner: data.winner,
         predicted_home_score: data.homeScore,
         predicted_away_score: data.awayScore,
-        total_goals_bucket: data.bucket,
       },
       { onConflict: "user_id,match_id" },
     );
