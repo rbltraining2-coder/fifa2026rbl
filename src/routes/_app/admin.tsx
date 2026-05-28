@@ -916,3 +916,351 @@ function UserDirectory({
     </>
   );
 }
+
+/* ================================================================== */
+/* Admin Tools panel                                                   */
+/* ================================================================== */
+function AdminToolsPanel({ adminEmployeeId }: { adminEmployeeId: string }) {
+  const qc = useQueryClient();
+  const syncFn = useServerFn(triggerScoreSync);
+  const recalcFn = useServerFn(recalculateLeaderboard);
+  const completeFn = useServerFn(completeMatchManually);
+  const updateScoresFn = useServerFn(updateMatchScores);
+  const listMatchesFn = useServerFn(listMatchesForAdmin);
+  const listLogsFn = useServerFn(listSyncLogs);
+
+  const [syncing, setSyncing] = useState(false);
+  const [recalcing, setRecalcing] = useState(false);
+  const [logFilter, setLogFilter] = useState<"all" | "failures">("all");
+
+  const matchesQ = useQuery({
+    queryKey: ["admin-tools-matches"],
+    queryFn: () => listMatchesFn({ data: { adminEmployeeId } }),
+  });
+  const logsQ = useQuery({
+    queryKey: ["admin-sync-logs", logFilter],
+    queryFn: () =>
+      listLogsFn({
+        data: { adminEmployeeId, limit: 50, onlyFailures: logFilter === "failures" },
+      }),
+    refetchInterval: 15_000,
+  });
+
+  const [selectedMatch, setSelectedMatch] = useState<string>("");
+  const [editHome, setEditHome] = useState<number>(0);
+  const [editAway, setEditAway] = useState<number>(0);
+  const [editStatus, setEditStatus] = useState<AdminMatchRow["status"]>("live");
+
+  const matches = matchesQ.data?.matches ?? [];
+  const current = matches.find((m) => m.id === selectedMatch);
+
+  const onSelectMatch = (id: string) => {
+    setSelectedMatch(id);
+    const m = matches.find((x) => x.id === id);
+    if (m) {
+      setEditHome(m.home_score ?? 0);
+      setEditAway(m.away_score ?? 0);
+      setEditStatus(m.status);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Quick actions */}
+      <section className="glossy-card p-5 space-y-4">
+        <h3 className="text-sm font-bold uppercase tracking-wider">Quick Actions</h3>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            disabled={syncing}
+            onClick={async () => {
+              setSyncing(true);
+              try {
+                const r = await syncFn({ data: { adminEmployeeId } });
+                if (r.ok) toast.success("Score sync triggered.");
+                else toast.error(`Sync returned ${r.status ?? "error"}`);
+                await qc.invalidateQueries({ queryKey: ["admin-sync-logs"] });
+                await qc.invalidateQueries({ queryKey: ["matches"] });
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Sync failed");
+              } finally { setSyncing(false); }
+            }}
+            className="px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-white disabled:opacity-60"
+            style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow-primary)" }}
+          >
+            {syncing ? "Syncing…" : "Trigger Score Sync"}
+          </button>
+          <button
+            type="button"
+            disabled={recalcing}
+            onClick={async () => {
+              setRecalcing(true);
+              try {
+                const r = await recalcFn({ data: { adminEmployeeId } });
+                toast.success(
+                  `Recalculated: ${r.predictionsUpdated} prediction(s), ${r.usersRefreshed}/${r.totalUsers} user totals updated.`,
+                );
+                await qc.invalidateQueries({ queryKey: ["leaderboard"] });
+                await qc.invalidateQueries({ queryKey: ["admin-sync-logs"] });
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Recalculate failed");
+              } finally { setRecalcing(false); }
+            }}
+            className="px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider border border-white/15 hover:bg-white/5 disabled:opacity-60"
+          >
+            {recalcing ? "Recalculating…" : "Recalculate Leaderboard"}
+          </button>
+        </div>
+      </section>
+
+      {/* Match editor */}
+      <section className="glossy-card p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold uppercase tracking-wider">Match Score Editor</h3>
+          <span className="text-[10px] text-muted-foreground">{matches.length} matches</span>
+        </div>
+
+        <label className="block space-y-1">
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            Select Match
+          </span>
+          <select
+            value={selectedMatch}
+            onChange={(e) => onSelectMatch(e.target.value)}
+            className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none"
+          >
+            <option value="">— Choose a match —</option>
+            {matches.map((m) => (
+              <option key={m.id} value={m.id}>
+                [{m.status}] {m.home_team} vs {m.away_team} — {formatIstShort(m.match_time)}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {current && (
+          <>
+            <div className="grid grid-cols-3 gap-3">
+              <label className="space-y-1">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  {current.home_team}
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  max={50}
+                  value={editHome}
+                  onChange={(e) => setEditHome(Number(e.target.value))}
+                  className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none text-center font-bold"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  {current.away_team}
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  max={50}
+                  value={editAway}
+                  onChange={(e) => setEditAway(Number(e.target.value))}
+                  className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none text-center font-bold"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Status
+                </span>
+                <select
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value)}
+                  className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none"
+                >
+                  {["scheduled", "live", "halftime", "completed", "cancelled"].map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await updateScoresFn({
+                      data: {
+                        adminEmployeeId,
+                        matchId: current.id,
+                        homeScore: editHome,
+                        awayScore: editAway,
+                        status: editStatus as any,
+                      },
+                    });
+                    toast.success("Scores updated.");
+                    await qc.invalidateQueries({ queryKey: ["admin-tools-matches"] });
+                    await qc.invalidateQueries({ queryKey: ["matches"] });
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Update failed");
+                  }
+                }}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white"
+                style={{ background: "var(--gradient-primary)" }}
+              >
+                Save Scores
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!window.confirm(
+                    `Mark ${current.home_team} ${editHome}-${editAway} ${current.away_team} as COMPLETED and award points?`,
+                  )) return;
+                  try {
+                    const r = await completeFn({
+                      data: {
+                        adminEmployeeId,
+                        matchId: current.id,
+                        homeScore: editHome,
+                        awayScore: editAway,
+                      },
+                    });
+                    toast.success(`Match completed — ${r.usersRefreshed} user total(s) refreshed.`);
+                    await qc.invalidateQueries({ queryKey: ["admin-tools-matches"] });
+                    await qc.invalidateQueries({ queryKey: ["matches"] });
+                    await qc.invalidateQueries({ queryKey: ["leaderboard"] });
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Complete failed");
+                  }
+                }}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white"
+                style={{ background: "linear-gradient(135deg, #16a34a 0%, #4ade80 100%)" }}
+              >
+                <CheckCircle2 className="inline -mt-0.5 mr-1" size={14} />
+                Complete & Award Points
+              </button>
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* Sync logs */}
+      <section className="glossy-card p-5 space-y-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <h3 className="text-sm font-bold uppercase tracking-wider">Sync Activity Logs</h3>
+          <div className="flex-1" />
+          <div className="flex gap-1 p-1 rounded-lg bg-black/40 border border-white/10">
+            {(["all", "failures"] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setLogFilter(f)}
+                className="px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                style={
+                  logFilter === f
+                    ? { background: "var(--gradient-primary)", color: "#fff" }
+                    : { color: "rgba(209,212,209,0.65)" }
+                }
+              >
+                {f === "all" ? "All Runs" : "Failed Only"}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => qc.invalidateQueries({ queryKey: ["admin-sync-logs"] })}
+            className="text-[10px] uppercase tracking-wider text-[var(--primary-glow)] hover:underline"
+          >
+            Refresh
+          </button>
+        </div>
+        <SyncLogTable logs={logsQ.data?.logs ?? []} loading={logsQ.isLoading} />
+        <p className="text-[10px] text-muted-foreground">Times shown in {IST_LABEL}. Auto-refreshes every 15 seconds.</p>
+      </section>
+    </div>
+  );
+}
+
+function SyncLogTable({ logs, loading }: { logs: SyncLogRow[]; loading: boolean }) {
+  if (loading) return <p className="text-sm text-muted-foreground">Loading logs…</p>;
+  if (logs.length === 0) {
+    return (
+      <div className="text-center py-8 text-sm text-muted-foreground border border-white/10 rounded-lg">
+        No sync activity yet.
+      </div>
+    );
+  }
+  return (
+    <div className="overflow-x-auto rounded-lg border border-white/10">
+      <table className="w-full text-xs">
+        <thead className="bg-white/5 text-muted-foreground uppercase tracking-wider">
+          <tr>
+            <th className="text-left px-3 py-2">When</th>
+            <th className="text-left px-3 py-2">Source</th>
+            <th className="text-left px-3 py-2">Status</th>
+            <th className="text-right px-3 py-2">Recv</th>
+            <th className="text-right px-3 py-2">Updated</th>
+            <th className="text-right px-3 py-2">Created</th>
+            <th className="text-right px-3 py-2">Scored</th>
+            <th className="text-right px-3 py-2">Users</th>
+            <th className="text-right px-3 py-2">Failed</th>
+            <th className="text-left px-3 py-2">Detail</th>
+          </tr>
+        </thead>
+        <tbody>
+          {logs.map((l) => {
+            const ok = l.status === "success" && l.failed_count === 0;
+            const color = ok
+              ? "rgba(74,222,128,0.85)"
+              : l.status === "partial"
+              ? "rgba(250,204,21,0.9)"
+              : "rgba(248,113,113,0.9)";
+            return (
+              <tr key={l.id} className="border-t border-white/5 align-top">
+                <td className="px-3 py-2 whitespace-nowrap">{formatIstShort(l.created_at)}</td>
+                <td className="px-3 py-2 font-mono">{l.source}</td>
+                <td className="px-3 py-2">
+                  <span style={{ color }} className="font-bold uppercase tracking-wider text-[10px]">
+                    {l.status}
+                  </span>
+                </td>
+                <td className="px-3 py-2 text-right">{l.received}</td>
+                <td className="px-3 py-2 text-right">{l.updated}</td>
+                <td className="px-3 py-2 text-right">{l.created}</td>
+                <td className="px-3 py-2 text-right">{l.predictions_scored}</td>
+                <td className="px-3 py-2 text-right">{l.users_refreshed}</td>
+                <td className="px-3 py-2 text-right" style={l.failed_count > 0 ? { color: "rgba(248,113,113,0.9)" } : undefined}>
+                  {l.failed_count}
+                </td>
+                <td className="px-3 py-2 text-muted-foreground max-w-xs">
+                  {l.error_message && (
+                    <span className="block text-red-300/90">{l.error_message}</span>
+                  )}
+                  {Array.isArray(l.failures) && l.failures.length > 0 && (
+                    <details>
+                      <summary className="cursor-pointer text-[11px]">
+                        {l.failures.length} failed item(s)
+                      </summary>
+                      <ul className="mt-1 space-y-0.5 text-[10px]">
+                        {l.failures.slice(0, 5).map((f, i) => (
+                          <li key={i} className="font-mono">
+                            {f.home_team} vs {f.away_team}: {f.error}
+                          </li>
+                        ))}
+                        {l.failures.length > 5 && (
+                          <li className="italic">+{l.failures.length - 5} more</li>
+                        )}
+                      </ul>
+                    </details>
+                  )}
+                  {l.duration_ms != null && (
+                    <span className="text-[10px]">{l.duration_ms}ms</span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
