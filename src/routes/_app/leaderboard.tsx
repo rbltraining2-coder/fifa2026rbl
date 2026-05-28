@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_app/leaderboard")({
   component: LeaderboardPage,
 });
 
-type Row = { id: string; employee_code: string; name: string; avatar_url: string | null; total_points: number };
+type Row = { id: string; employee_id: string; name: string; avatar_url: string | null; total_points: number };
 
 function LeaderboardPage() {
   const { user } = useAuth();
