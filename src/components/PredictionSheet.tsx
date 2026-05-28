@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Minus, Plus, X } from "lucide-react";
+import { Minus, Plus, X, Lock } from "lucide-react";
 import type { Match } from "./MatchCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -10,7 +10,6 @@ import { getPredictionWindow } from "@/lib/predictionWindow";
 import { savePrediction } from "@/lib/predictions.functions";
 
 type Winner = "home" | "draw" | "away";
-type Bucket = "under_2" | "between_3_4" | "over_4";
 
 export default function PredictionSheet({
   match,
@@ -24,24 +23,38 @@ export default function PredictionSheet({
   const [winner, setWinner] = useState<Winner>("home");
   const [hg, setHg] = useState(1);
   const [ag, setAg] = useState(1);
-  const [bucket, setBucket] = useState<Bucket>("between_3_4");
   const [saving, setSaving] = useState(false);
+  const [existing, setExisting] = useState<{
+    winner: Winner | null;
+    hg: number | null;
+    ag: number | null;
+  } | null>(null);
 
   // Load existing prediction (if any) when sheet opens.
   useEffect(() => {
-    if (!match || !user) return;
+    if (!match || !user) {
+      setExisting(null);
+      return;
+    }
     supabase
       .from("predictions")
-      .select("winner, predicted_home_score, predicted_away_score, total_goals_bucket")
+      .select("winner, predicted_home_score, predicted_away_score")
       .eq("match_id", match.id)
       .eq("user_id", user.employee_id)
       .maybeSingle()
       .then(({ data }) => {
-        if (!data) return;
+        if (!data) {
+          setExisting(null);
+          return;
+        }
         if (data.winner) setWinner(data.winner as Winner);
         if (data.predicted_home_score != null) setHg(data.predicted_home_score);
         if (data.predicted_away_score != null) setAg(data.predicted_away_score);
-        if (data.total_goals_bucket) setBucket(data.total_goals_bucket as Bucket);
+        setExisting({
+          winner: (data.winner as Winner) ?? null,
+          hg: data.predicted_home_score,
+          ag: data.predicted_away_score,
+        });
       });
   }, [match, user]);
 
@@ -65,7 +78,6 @@ export default function PredictionSheet({
           winner,
           homeScore: hg,
           awayScore: ag,
-          bucket,
         },
       });
     } catch (e) {
@@ -78,6 +90,8 @@ export default function PredictionSheet({
     qc.invalidateQueries({ queryKey: ["predictions"] });
     onClose();
   };
+
+  const locked = match ? !getPredictionWindow(match.match_time).canPredict : false;
 
   return (
     <AnimatePresence>
@@ -98,12 +112,14 @@ export default function PredictionSheet({
             transition={{ type: "spring", damping: 28, stiffness: 280 }}
           >
             <div
-              className="mx-auto max-w-2xl rounded-t-3xl p-5 pb-8"
+              className="mx-auto max-w-2xl rounded-t-3xl p-5 pb-8 max-h-[92vh] overflow-y-auto"
               style={{ background: "linear-gradient(180deg,#3a3d3d,#2a2c2c)", boxShadow: "0 -20px 60px rgba(0,0,0,0.6)" }}
             >
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Predict</p>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                    {locked ? "Your Prediction" : "Predict"}
+                  </p>
                   <h2 className="text-xl font-bold">
                     {match.home_team} <span className="text-muted-foreground">vs</span> {match.away_team}
                   </h2>
@@ -113,6 +129,44 @@ export default function PredictionSheet({
                 </button>
               </div>
 
+              {locked && existing && (
+                <div
+                  className="rounded-2xl p-4 mb-2 flex items-center gap-3"
+                  style={{
+                    background: "rgba(0,0,0,0.3)",
+                    border: "1px solid rgba(245,158,11,0.35)",
+                  }}
+                >
+                  <Lock size={16} className="text-[#F59E0B] shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Locked Pick</p>
+                    <p className="text-base font-bold">
+                      {existing.hg ?? 0} – {existing.ag ?? 0}{" "}
+                      <span className="text-muted-foreground font-normal text-sm">
+                        ({existing.winner === "draw"
+                          ? "Draw"
+                          : existing.winner === "home"
+                            ? match.home_team
+                            : existing.winner === "away"
+                              ? match.away_team
+                              : "—"})
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {locked && !existing && (
+                <div
+                  className="rounded-2xl p-4 mb-2 text-center text-sm text-muted-foreground"
+                  style={{ background: "rgba(0,0,0,0.3)" }}
+                >
+                  Predictions are locked — no pick was saved for this match.
+                </div>
+              )}
+
+              {!locked && (
+              <>
               <Step n={1} title="Match Winner">
                 <div className="grid grid-cols-3 gap-2">
                   {(
@@ -149,38 +203,17 @@ export default function PredictionSheet({
                 </div>
               </Step>
 
-              <Step n={3} title="Total Goals">
-                <div className="grid grid-cols-3 gap-2">
-                  {(
-                    [
-                      ["under_2", "Under 2"],
-                      ["between_3_4", "Between 3 - 4"],
-                      ["over_4", "Over 4"],
-                    ] as const
-                  ).map(([k, label]) => (
-                    <button
-                      key={k}
-                      onClick={() => setBucket(k as Bucket)}
-                      className="rounded-xl py-3 text-sm font-semibold transition"
-                      style={
-                        bucket === k
-                          ? {
-                              background: "var(--gradient-success)",
-                              color: "#fff",
-                              boxShadow: "var(--shadow-glow-success)",
-                            }
-                          : { background: "rgba(0,0,0,0.3)", color: "#bfc2bf" }
-                      }
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </Step>
-
               <button onClick={save} disabled={saving} className="btn-glossy w-full mt-6">
                 {saving ? "Saving…" : "Save Prediction"}
               </button>
+              </>
+              )}
+
+              {locked && (
+                <button onClick={onClose} className="btn-glossy w-full mt-4">
+                  Close
+                </button>
+              )}
             </div>
           </motion.div>
         </>
