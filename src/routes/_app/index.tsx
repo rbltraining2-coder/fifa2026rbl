@@ -8,6 +8,7 @@ import PredictionSheet from "@/components/PredictionSheet";
 import TeamFlag from "@/components/TeamFlag";
 import { Lock } from "lucide-react";
 import { getPredictionWindow } from "@/lib/predictionWindow";
+import { formatIstDateTime, IST_LABEL } from "@/lib/ist";
 import promoBanner from "@/assets/promo-banner.png";
 
 export const Route = createFileRoute("/_app/")({
@@ -147,11 +148,7 @@ function HomePage() {
                       {m.home_team} <span className="text-muted-foreground">vs</span> {m.away_team}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
-                      {new Date(m.match_time).toLocaleString(undefined, {
-                        weekday: "short", day: "numeric", month: "short",
-                        hour: "2-digit", minute: "2-digit", hour12: true,
-                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                      })}
+                      {formatIstDateTime(m.match_time)} <span className="opacity-70">{IST_LABEL}</span>
                     </p>
                   </div>
                 </div>
