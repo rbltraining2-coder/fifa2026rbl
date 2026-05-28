@@ -26,10 +26,10 @@ function LeaderboardPage() {
     queryKey: ["leaderboard"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("profiles")
-        .select("id, employee_code, name, avatar_url, total_points")
+        .from("registered_users")
+        .select("id, employee_id, name, avatar_url, total_points")
         .order("total_points", { ascending: false })
-        .order("employee_code", { ascending: true })
+        .order("employee_id", { ascending: true })
         .limit(500);
       if (error) throw error;
       return (data ?? []) as Row[];
