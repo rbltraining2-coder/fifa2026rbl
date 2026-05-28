@@ -1,6 +1,7 @@
 import Countdown from "./Countdown";
 import TeamFlag from "./TeamFlag";
 import { getPredictionWindow } from "@/lib/predictionWindow";
+import { formatIstShort, IST_LABEL } from "@/lib/ist";
 
 export type Match = {
   id: string;
@@ -24,9 +25,7 @@ export function FeatureMatchCard({
   alreadyPredicted?: boolean;
 }) {
   const w = getPredictionWindow(match.match_time);
-  const matchTimeStr = new Date(match.match_time).toLocaleString(undefined, {
-    weekday: "short", hour: "2-digit", minute: "2-digit",
-  }).toUpperCase();
+  const matchTimeStr = formatIstShort(match.match_time);
   return (
     <div className="glossy-card w-full p-5 tilt-card">
       <div className="accent-strip" />
@@ -35,7 +34,7 @@ export function FeatureMatchCard({
       </div>
       <div className="text-center mb-1">
         <span className="text-xs font-bold" style={{ color: "#D1D4D1", letterSpacing: "0.12em" }}>
-          {matchTimeStr}
+          {matchTimeStr} <span className="opacity-70">{IST_LABEL}</span>
         </span>
       </div>
       <div className="flex items-center justify-between mt-1">
