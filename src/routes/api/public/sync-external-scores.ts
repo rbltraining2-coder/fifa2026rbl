@@ -249,47 +249,86 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
           }
         }
 
-        // Recompute points for predictions on completed matches.
+        // ─── Automatic prediction scoring engine ──────────────────────────
+        // Runs whenever a match is completed or its final score changes.
+        // Idempotent: re-running with the same inputs produces the same
+        // points_earned, so duplicate runs don't double-award. If the final
+        // score is later corrected, all affected predictions are recomputed.
+        let predictionsUpdated = 0;
+        let usersRefreshed = 0;
         if (updatedMatchIds.length > 0) {
           try {
-          const { data: fresh } = await supabaseAdmin
-            .from("matches")
-            .select("id, match_time, home_score, away_score")
-            .in("id", updatedMatchIds);
-          const matchById = new Map((fresh ?? []).map((m) => [m.id, m]));
+            console.log(`[scoring] recomputing for ${updatedMatchIds.length} completed match(es)`);
+            const { data: fresh, error: freshErr } = await supabaseAdmin
+              .from("matches")
+              .select("id, home_score, away_score")
+              .in("id", updatedMatchIds);
+            if (freshErr) throw freshErr;
+            const matchById = new Map((fresh ?? []).map((m) => [m.id, m]));
 
-          const { data: preds } = await supabaseAdmin
-            .from("predictions")
-            .select("id, user_id, match_id, winner, predicted_home_score, predicted_away_score, total_goals_bucket, created_at")
-            .in("match_id", updatedMatchIds);
+            const { data: preds, error: predsErr } = await supabaseAdmin
+              .from("predictions")
+              .select("id, user_id, match_id, winner, predicted_home_score, predicted_away_score, points_earned")
+              .in("match_id", updatedMatchIds);
+            if (predsErr) throw predsErr;
 
-          for (const p of preds ?? []) {
-            const m = matchById.get(p.match_id);
-            if (!m || m.home_score == null || m.away_score == null) continue;
-            const earned = computePoints(p, {
-              match_time: m.match_time,
-              home_score: m.home_score,
-              away_score: m.away_score,
-            });
-            await supabaseAdmin.from("predictions").update({ points_earned: earned }).eq("id", p.id);
-          }
+            const affectedUsers = new Set<string>();
+            for (const p of preds ?? []) {
+              const m = matchById.get(p.match_id);
+              if (!m || m.home_score == null || m.away_score == null) continue;
+              const earned = computePoints(p, {
+                home_score: m.home_score,
+                away_score: m.away_score,
+              });
+              affectedUsers.add(p.user_id);
+              // Skip the write when value is unchanged — prevents duplicate updates.
+              if ((p.points_earned ?? 0) === earned) continue;
+              const { error: upPredErr } = await supabaseAdmin
+                .from("predictions")
+                .update({ points_earned: earned })
+                .eq("id", p.id);
+              if (upPredErr) {
+                console.error(`[scoring] prediction ${p.id} update failed:`, upPredErr.message);
+                continue;
+              }
+              predictionsUpdated++;
+            }
+            console.log(`[scoring] ${predictionsUpdated} prediction point row(s) updated; ${affectedUsers.size} user(s) affected`);
 
-          // Recompute totals per user (employee_id) and propagate to registered_users.
-          const { data: allPreds } = await supabaseAdmin
-            .from("predictions")
-            .select("user_id, points_earned");
-          const totals = new Map<string, number>();
-          for (const r of allPreds ?? []) {
-            totals.set(r.user_id, (totals.get(r.user_id) ?? 0) + (r.points_earned ?? 0));
-          }
-          for (const [employeeId, total] of totals) {
-            await supabaseAdmin
-              .from("registered_users")
-              .update({ total_points: total })
-              .eq("employee_id", employeeId);
-          }
+            // Recompute each affected user's total from scratch (authoritative)
+            // and only write when the value actually changed.
+            for (const userId of affectedUsers) {
+              const { data: userPreds, error: upErr } = await supabaseAdmin
+                .from("predictions")
+                .select("points_earned")
+                .eq("user_id", userId);
+              if (upErr) {
+                console.error(`[scoring] aggregate fetch failed for ${userId}:`, upErr.message);
+                continue;
+              }
+              const total = (userPreds ?? []).reduce(
+                (s, r) => s + (r.points_earned ?? 0),
+                0,
+              );
+              const { data: existing } = await supabaseAdmin
+                .from("registered_users")
+                .select("total_points")
+                .eq("employee_id", userId)
+                .maybeSingle();
+              if (existing && (existing.total_points ?? 0) === total) continue;
+              const { error: writeErr } = await supabaseAdmin
+                .from("registered_users")
+                .update({ total_points: total })
+                .eq("employee_id", userId);
+              if (writeErr) {
+                console.error(`[scoring] total write failed for ${userId}:`, writeErr.message);
+                continue;
+              }
+              usersRefreshed++;
+            }
+            console.log(`[scoring] ${usersRefreshed} user total(s) refreshed — leaderboard up to date`);
           } catch (err: any) {
-            console.error("[sync-external-scores] points recompute failed", err?.message ?? err);
+            console.error("[scoring] recompute failed:", err?.message ?? err);
           }
         }
 
@@ -299,6 +338,8 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
           processed: items.length,
           updated: updatedMatchIds.length,
           created: createdMatchIds.length,
+          predictions_scored: predictionsUpdated,
+          users_refreshed: usersRefreshed,
           failed,
         });
       },
