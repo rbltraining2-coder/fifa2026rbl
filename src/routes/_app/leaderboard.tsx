@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_app/leaderboard")({
   component: LeaderboardPage,
 });
 
-type Row = { id: string; employee_code: string; name: string; avatar_url: string | null; total_points: number };
+type Row = { id: string; employee_id: string; name: string; avatar_url: string | null; total_points: number };
 
 function LeaderboardPage() {
   const { user } = useAuth();
@@ -26,10 +26,10 @@ function LeaderboardPage() {
     queryKey: ["leaderboard"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("profiles")
-        .select("id, employee_code, name, avatar_url, total_points")
+        .from("registered_users")
+        .select("id, employee_id, name, avatar_url, total_points")
         .order("total_points", { ascending: false })
-        .order("employee_code", { ascending: true })
+        .order("employee_id", { ascending: true })
         .limit(500);
       if (error) throw error;
       return (data ?? []) as Row[];
@@ -66,10 +66,10 @@ function LeaderboardPage() {
               style={mine ? { outline: "2px solid var(--success)" } : undefined}
             >
               <span className="w-7 text-center text-sm font-bold text-muted-foreground tabular-nums">{rank}</span>
-              <Avatar url={r.avatar_url} code={r.employee_code} />
+              <Avatar url={r.avatar_url} code={r.employee_id} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">{r.name || r.employee_code}</p>
-                <p className="text-[11px] text-muted-foreground">{r.employee_code}</p>
+                <p className="text-sm font-semibold truncate">{r.name || r.employee_id}</p>
+                <p className="text-[11px] text-muted-foreground">{r.employee_id}</p>
               </div>
               <span className="text-sm font-black" style={{ color: "var(--success)" }}>
                 {r.total_points} PTS
@@ -86,10 +86,10 @@ function LeaderboardPage() {
             style={{ outline: "2px solid var(--primary-glow)", boxShadow: "var(--shadow-glow-primary)" }}
           >
             <span className="w-7 text-center text-sm font-bold tabular-nums">#{myIdx + 1}</span>
-            <Avatar url={me.avatar_url} code={me.employee_code} />
+            <Avatar url={me.avatar_url} code={me.employee_id} />
             <div className="flex-1">
               <p className="text-sm font-bold">Your Rank</p>
-              <p className="text-[11px] text-muted-foreground">{me.employee_code}</p>
+              <p className="text-[11px] text-muted-foreground">{me.employee_id}</p>
             </div>
             <span className="text-sm font-black" style={{ color: "var(--success)" }}>
               {me.total_points} PTS

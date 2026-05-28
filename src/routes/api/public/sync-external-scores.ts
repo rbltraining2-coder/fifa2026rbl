@@ -225,7 +225,7 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
             await supabaseAdmin.from("predictions").update({ points_earned: earned }).eq("id", p.id);
           }
 
-          // Recompute totals per user (employee_id) and propagate to profiles by employee_code.
+          // Recompute totals per user (employee_id) and propagate to registered_users.
           const { data: allPreds } = await supabaseAdmin
             .from("predictions")
             .select("user_id, points_earned");
@@ -238,10 +238,6 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
               .from("registered_users")
               .update({ total_points: total })
               .eq("employee_id", employeeId);
-            await supabaseAdmin
-              .from("profiles")
-              .update({ total_points: total })
-              .eq("employee_code", employeeId);
           }
           } catch (err: any) {
             console.error("[sync-external-scores] points recompute failed", err?.message ?? err);
