@@ -8,6 +8,7 @@ import PredictionSheet from "@/components/PredictionSheet";
 import TeamFlag from "@/components/TeamFlag";
 import { Lock } from "lucide-react";
 import { getPredictionWindow } from "@/lib/predictionWindow";
+import { formatIstDateTime, IST_LABEL } from "@/lib/ist";
 import promoBanner from "@/assets/promo-banner.png";
 
 export const Route = createFileRoute("/_app/")({
