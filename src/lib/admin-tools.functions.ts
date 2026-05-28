@@ -224,14 +224,13 @@ export const updateMatchScores = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     await assertAdmin(data.adminEmployeeId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const update: Record<string, unknown> = {
-      home_score: data.homeScore,
-      away_score: data.awayScore,
-    };
-    if (data.status) update.status = data.status;
     const { error } = await supabaseAdmin
       .from("matches")
-      .update(update)
+      .update({
+        home_score: data.homeScore,
+        away_score: data.awayScore,
+        ...(data.status ? { status: data.status } : {}),
+      })
       .eq("id", data.matchId);
     if (error) throw new Error(error.message);
 
@@ -284,10 +283,16 @@ export type SyncLogRow = {
   predictions_scored: number;
   users_refreshed: number;
   failed_count: number;
-  failures: unknown;
+  failures: SyncFailure[] | null;
   error_message: string | null;
   duration_ms: number | null;
   created_at: string;
+};
+
+export type SyncFailure = {
+  home_team?: string;
+  away_team?: string;
+  error?: string;
 };
 
 const listLogsSchema = adminOnly.extend({
@@ -308,5 +313,8 @@ export const listSyncLogs = createServerFn({ method: "POST" })
     if (data.onlyFailures) q = q.gt("failed_count", 0);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return { logs: (rows ?? []) as SyncLogRow[] };
+    return { logs: (rows ?? []).map((r: any) => ({
+      ...r,
+      failures: (r.failures as SyncFailure[] | null) ?? null,
+    })) as SyncLogRow[] };
   });
