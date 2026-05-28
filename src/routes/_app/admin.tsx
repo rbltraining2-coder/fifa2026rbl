@@ -91,7 +91,7 @@ function AdminPage() {
   const [wiping, setWiping] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [tab, setTab] = useState<"matches" | "users" | "sync">("matches");
+  const [tab, setTab] = useState<"matches" | "users" | "tools" | "sync">("matches");
   const [userBusy, setUserBusy] = useState(false);
   const [userDragOver, setUserDragOver] = useState(false);
   const userInputRef = useRef<HTMLInputElement>(null);
@@ -297,8 +297,8 @@ function AdminPage() {
         </p>
       </header>
 
-      <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-black/40 border border-white/10 max-w-xl">
-        {(["matches", "users", "sync"] as const).map((t) => (
+      <div className="grid grid-cols-4 gap-1 p-1 rounded-xl bg-black/40 border border-white/10 max-w-2xl">
+        {(["matches", "users", "tools", "sync"] as const).map((t) => (
           <button
             key={t}
             type="button"
@@ -310,7 +310,13 @@ function AdminPage() {
                 : { color: "rgba(209,212,209,0.65)" }
             }
           >
-            {t === "matches" ? "Match Schedule" : t === "users" ? "User Management" : "Auto-Sync"}
+            {t === "matches"
+              ? "Match Schedule"
+              : t === "users"
+              ? "User Management"
+              : t === "tools"
+              ? "Admin Tools"
+              : "Auto-Sync"}
           </button>
         ))}
       </div>
@@ -716,6 +722,7 @@ function AdminPage() {
       )}
 
       {tab === "sync" && <AutoSyncGuide />}
+      {tab === "tools" && profile && <AdminToolsPanel adminEmployeeId={profile.employee_id} />}
     </div>
   );
 }
