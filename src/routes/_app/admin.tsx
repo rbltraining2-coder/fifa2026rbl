@@ -16,7 +16,18 @@ import {
   deleteUserEverywhere,
   addMatchManually,
 } from "@/lib/admin.functions";
-import { istLocalInputToUtcIso, IST_LABEL } from "@/lib/ist";
+import {
+  triggerScoreSync,
+  recalculateLeaderboard,
+  completeMatchManually,
+  updateMatchScores,
+  listMatchesForAdmin,
+  listSyncLogs,
+  type AdminMatchRow,
+  type SyncLogRow,
+} from "@/lib/admin-tools.functions";
+import { formatIstShort, IST_LABEL } from "@/lib/ist";
+import { istLocalInputToUtcIso } from "@/lib/ist";
 
 const ADMIN_EMPLOYEE_ID = "50161635";
 
