@@ -27,7 +27,11 @@ export const Route = createFileRoute("/_app/predictions")({
 });
 
 type Tab = "upcoming" | "locked" | "completed";
-type Row = { prediction: Prediction & { id: string; match_id: string }; match: Match };
+type Row = {
+  prediction: Prediction & { id: string; match_id: string };
+  match: Match;
+  pointsEarned: number;
+};
 
 function PredictionsPage() {
   const { user } = useAuth();
@@ -41,7 +45,7 @@ function PredictionsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("predictions")
-        .select("id, match_id, winner, predicted_home_score, predicted_away_score, total_goals_bucket, points_earned, created_at, matches(*)")
+        .select("id, match_id, winner, predicted_home_score, predicted_away_score, points_earned, created_at, matches(*)")
         .eq("user_id", user!.employee_id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -51,7 +55,6 @@ function PredictionsPage() {
         winner: Prediction["winner"];
         predicted_home_score: number | null;
         predicted_away_score: number | null;
-        total_goals_bucket: Prediction["total_goals_bucket"];
         points_earned: number;
         created_at: string;
         matches: Match;
@@ -63,13 +66,13 @@ function PredictionsPage() {
     () =>
       (data ?? []).map((d) => ({
         match: d.matches,
+        pointsEarned: d.points_earned,
         prediction: {
           id: d.id,
           match_id: d.match_id,
           winner: d.winner,
           predicted_home_score: d.predicted_home_score,
           predicted_away_score: d.predicted_away_score,
-          total_goals_bucket: d.total_goals_bucket,
           created_at: d.created_at,
         },
       })),
@@ -173,9 +176,15 @@ function PredictionsPage() {
             {tab === "completed" && (
               <span
                 className="text-xs font-black px-3 py-1.5 rounded-full"
-                style={{ background: "var(--gradient-success)", color: "#fff" }}
+                style={{
+                  background:
+                    r.pointsEarned > 0
+                      ? "var(--gradient-success)"
+                      : "rgba(255,255,255,0.08)",
+                  color: r.pointsEarned > 0 ? "#fff" : "rgba(255,255,255,0.6)",
+                }}
               >
-                +0 PTS
+                {r.pointsEarned > 0 ? `+${r.pointsEarned} PTS` : "0 PTS"}
               </span>
             )}
           </li>
@@ -189,6 +198,7 @@ function PredictionsPage() {
         onClose={() => setShowResult(null)}
         match={showResult?.match ?? null}
         prediction={showResult?.prediction ?? null}
+        pointsEarned={showResult?.pointsEarned ?? null}
       />
     </div>
   );
