@@ -2,8 +2,8 @@ name: FIFA 2026 Score Sync
 
 on:
   schedule:
-    # Runs every 15 minutes during the tournament.
-    - cron: "*/15 * * * *"
+    # Runs every 5 minutes during the tournament for near-live score updates.
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 concurrency:
