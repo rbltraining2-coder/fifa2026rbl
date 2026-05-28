@@ -27,32 +27,71 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`Fetching fixtures from ${source}`);
-  const res = await fetch(source);
-  if (!res.ok) {
-    console.error(`Upstream feed responded ${res.status}`);
-    process.exit(1);
-  }
-  const json = await res.json();
-  const results = extract(json);
-  console.log(`Extracted ${results.length} fixtures`);
-
-  if (results.length === 0) {
-    console.log("Nothing to sync.");
+  console.log(`[sync] Fetching fixtures from ${source}`);
+  let json;
+  try {
+    const res = await fetchWithRetry(source, { method: "GET" }, 3);
+    if (!res.ok) {
+      console.error(`[sync] Upstream feed responded ${res.status}; skipping run.`);
+      return; // soft-fail so the workflow doesn't go red on transient API blips
+    }
+    json = await res.json();
+  } catch (err) {
+    console.error(`[sync] Upstream fetch failed: ${err?.message ?? err}. Skipping run.`);
     return;
   }
 
-  const resp = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${secret}`,
-    },
-    body: JSON.stringify({ results }),
-  });
-  const text = await resp.text();
-  console.log(`Sync response ${resp.status}: ${text}`);
-  if (!resp.ok) process.exit(1);
+  let results = [];
+  try {
+    results = extract(json);
+  } catch (err) {
+    console.error(`[sync] Extract failed: ${err?.message ?? err}`);
+    return;
+  }
+  console.log(`[sync] Extracted ${results.length} fixtures (live: ${results.filter((r) => r.status === "live" || r.status === "halftime").length}, completed: ${results.filter((r) => r.status === "completed").length})`);
+
+  if (results.length === 0) {
+    console.log("[sync] Nothing to sync.");
+    return;
+  }
+
+  try {
+    const resp = await fetchWithRetry(
+      endpoint,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${secret}`,
+        },
+        body: JSON.stringify({ results }),
+      },
+      2,
+    );
+    const text = await resp.text();
+    console.log(`[sync] Sync response ${resp.status}: ${text.slice(0, 500)}`);
+    if (!resp.ok) {
+      console.error("[sync] Sync endpoint returned non-OK; will retry next interval.");
+    }
+  } catch (err) {
+    console.error(`[sync] Sync request failed: ${err?.message ?? err}`);
+  }
+}
+
+async function fetchWithRetry(url, init, attempts) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(url, init);
+      if (res.ok || res.status < 500) return res;
+      lastErr = new Error(`HTTP ${res.status}`);
+    } catch (err) {
+      lastErr = err;
+    }
+    const wait = 500 * Math.pow(2, i);
+    await new Promise((r) => setTimeout(r, wait));
+  }
+  throw lastErr ?? new Error("fetch failed");
 }
 
 /**
