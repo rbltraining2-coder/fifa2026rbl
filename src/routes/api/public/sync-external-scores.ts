@@ -48,6 +48,34 @@ function bool(v: unknown): boolean {
   return false;
 }
 
+const ALLOWED_STATUSES = new Set([
+  "scheduled",
+  "live",
+  "halftime",
+  "completed",
+  "cancelled",
+]);
+
+function normalizeStatus(raw: unknown, isCompleted: boolean): string {
+  const s = String(raw ?? "").trim().toLowerCase();
+  if (ALLOWED_STATUSES.has(s)) return s;
+  if (s === "ht" || s.includes("half")) return "halftime";
+  if (s === "ft" || s.includes("final") || s.includes("complete") || s.includes("finished")) return "completed";
+  if (s === "live" || s === "1h" || s === "2h" || s.includes("in play")) return "live";
+  if (s.includes("cancel") || s.includes("postp")) return "cancelled";
+  return isCompleted ? "completed" : "scheduled";
+}
+
+function toUtcIso(v: unknown): string {
+  const s = String(v ?? "").trim();
+  if (!s) return "";
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d.toISOString();
+  // Try "YYYY-MM-DD HH:MM:SS" without TZ -> treat as UTC
+  const d2 = new Date(s.replace(" ", "T") + "Z");
+  return isNaN(d2.getTime()) ? "" : d2.toISOString();
+}
+
 type NormalizedItem = {
   home_team: string;
   away_team: string;
@@ -55,6 +83,8 @@ type NormalizedItem = {
   away_score: number;
   match_time: string;
   stage: string;
+  stadium: string | null;
+  status: string;
   is_completed: boolean;
 };
 
@@ -63,14 +93,18 @@ function normalize(raw: any): NormalizedItem | null {
   const home_team = str(raw.home_team ?? raw.homeTeam ?? raw.home ?? raw.team_home);
   const away_team = str(raw.away_team ?? raw.awayTeam ?? raw.away ?? raw.team_away);
   if (!home_team || !away_team) return null;
+  const is_completed = bool(raw.is_completed ?? raw.isCompleted ?? raw.completed ?? raw.status);
+  const stadiumRaw = str(raw.stadium ?? raw.venue ?? raw.strVenue ?? "", 256);
   return {
     home_team,
     away_team,
     home_score: num(raw.home_score ?? raw.homeScore ?? raw.score_home),
     away_score: num(raw.away_score ?? raw.awayScore ?? raw.score_away),
-    match_time: str(raw.match_time ?? raw.matchTime ?? raw.date ?? raw.kickoff ?? "", 64),
+    match_time: toUtcIso(raw.match_time ?? raw.matchTime ?? raw.date ?? raw.kickoff),
     stage: str(raw.stage ?? raw.stage_name ?? raw.stageName ?? raw.competition ?? "Auto-Synced", 128),
-    is_completed: bool(raw.is_completed ?? raw.isCompleted ?? raw.completed ?? raw.status),
+    stadium: stadiumRaw || null,
+    status: normalizeStatus(raw.status, is_completed),
+    is_completed,
   };
 }
 
@@ -133,7 +167,7 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
             const isCompleted = item.is_completed;
             const query = supabaseAdmin
             .from("matches")
-            .select("id, home_score, away_score, status")
+            .select("id, home_score, away_score, status, match_time, stadium, stage_name")
             .eq("home_team", item.home_team)
             .eq("away_team", item.away_team);
             if (item.match_time) query.eq("match_time", item.match_time);
@@ -155,9 +189,10 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
                 away_team: item.away_team,
                 home_score: homeScore,
                 away_score: awayScore,
-                status: "scheduled",
+                status: item.status,
                 match_time: matchTime,
                 stage_name: item.stage || "Auto-Synced",
+                stadium: item.stadium,
               })
               .select("id, home_team, away_team, home_score, away_score, status, match_time")
               .single();
@@ -173,13 +208,19 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
             if (isCompleted) updatedMatchIds.push(inserted.id);
             continue;
             }
-            const newStatus = isCompleted ? "completed" : "scheduled";
+            const newStatus = item.status;
+            const newMatchTime = item.match_time || (m as any).match_time;
+            const newStadium = item.stadium ?? (m as any).stadium ?? null;
+            const newStage = item.stage || (m as any).stage_name || "Auto-Synced";
             if (
-            m.home_score === homeScore &&
-            m.away_score === awayScore &&
-            m.status === newStatus
+              m.home_score === homeScore &&
+              m.away_score === awayScore &&
+              m.status === newStatus &&
+              (m as any).match_time === newMatchTime &&
+              (m as any).stadium === newStadium &&
+              (m as any).stage_name === newStage
             ) {
-            continue;
+              continue;
             }
             const { error: upErr } = await supabaseAdmin
             .from("matches")
@@ -187,6 +228,9 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
               home_score: homeScore,
               away_score: awayScore,
               status: newStatus,
+              match_time: newMatchTime,
+              stadium: newStadium,
+              stage_name: newStage,
             })
             .eq("id", m.id);
             if (upErr) {
