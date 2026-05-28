@@ -128,10 +128,13 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
         const auth = request.headers.get("authorization") ?? "";
         const token = auth.replace(/^Bearer\s+/i, "").trim();
         const expected = process.env.SCORE_SYNC_SECRET;
+        const tierHeader = (request.headers.get("x-sync-tier") ?? "").trim().toLowerCase();
+        const tier = ["live", "matchday", "upcoming"].includes(tierHeader) ? tierHeader : "";
+        const logSource = tier ? `score-sync:${tier}` : "score-sync";
         if (!expected || !token || token !== expected) {
           try {
             await supabaseAdmin.from("sync_logs").insert({
-              source: "score-sync",
+              source: logSource,
               status: "unauthorized",
               error_message: "Invalid or missing bearer token",
               duration_ms: Date.now() - startedAt,
@@ -173,6 +176,7 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
         const updatedMatchIds: string[] = [];
         const createdMatchIds: string[] = [];
         const failed: { home_team: string; away_team: string; error: string }[] = [];
+        let skippedCompleted = 0;
 
         for (const item of items) {
           try {
@@ -192,6 +196,13 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
             if (findErr) {
             failed.push({ home_team: item.home_team, away_team: item.away_team, error: findErr.message });
             continue;
+            }
+
+            // Stop syncing matches that have already been finalized — frees the
+            // free-tier API quota and prevents accidental score rewrites.
+            if (m && (m as any).status === "completed") {
+              skippedCompleted++;
+              continue;
             }
 
             if (!m) {
@@ -343,7 +354,7 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
 
         try {
           await supabaseAdmin.from("sync_logs").insert({
-            source: "score-sync",
+            source: logSource,
             status: failed.length > 0 ? "partial" : "success",
             received: rawItems.length,
             processed: items.length,
@@ -354,16 +365,19 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
             failed_count: failed.length,
             failures: failed.length > 0 ? failed : null,
             duration_ms: Date.now() - startedAt,
+            error_message: skippedCompleted > 0 ? `skipped_completed=${skippedCompleted}` : null,
           });
         } catch (err: any) {
           console.error("[sync-external-scores] failed to log run:", err?.message ?? err);
         }
         return ok200({
           ok: true,
+          tier: tier || null,
           received: rawItems.length,
           processed: items.length,
           updated: updatedMatchIds.length,
           created: createdMatchIds.length,
+          skipped_completed: skippedCompleted,
           predictions_scored: predictionsUpdated,
           users_refreshed: usersRefreshed,
           failed,
