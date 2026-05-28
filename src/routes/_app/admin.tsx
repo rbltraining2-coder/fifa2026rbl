@@ -16,6 +16,7 @@ import {
   deleteUserEverywhere,
   addMatchManually,
 } from "@/lib/admin.functions";
+import { istLocalInputToUtcIso, IST_LABEL } from "@/lib/ist";
 
 const ADMIN_EMPLOYEE_ID = "50161635";
 
@@ -448,13 +449,18 @@ function AdminPage() {
             />
           </label>
           <label className="space-y-1">
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Match Date &amp; Time</span>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              Match Date &amp; Time ({IST_LABEL})
+            </span>
             <input
               type="datetime-local"
               value={manualMatch.match_time}
               onChange={(e) => setManualMatch((m) => ({ ...m, match_time: e.target.value }))}
               className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[#FF6500] outline-none"
             />
+            <span className="text-[10px] text-muted-foreground">
+              Enter the Indian kick-off time — it will be stored in UTC.
+            </span>
           </label>
           <label className="space-y-1">
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Stage / Group</span>
@@ -509,7 +515,9 @@ function AdminPage() {
                   adminEmployeeId: profile.employee_id,
                   home_team: manualMatch.home_team.trim(),
                   away_team: manualMatch.away_team.trim(),
-                  match_time: manualMatch.match_time,
+                  match_time:
+                    istLocalInputToUtcIso(manualMatch.match_time) ||
+                    manualMatch.match_time,
                   stage_name: manualMatch.stage_name.trim() || null,
                 },
               });
