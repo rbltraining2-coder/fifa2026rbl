@@ -7,28 +7,33 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 } as const;
 
-function bucketFor(total: number): "under_2" | "between_3_4" | "over_4" {
-  if (total < 3) return "under_2";
-  if (total > 3) return "over_4";
-  return "between_3_4";
-}
-
-function computePoints(p: {
-  winner: string | null;
-  predicted_home_score: number | null;
-  predicted_away_score: number | null;
-  total_goals_bucket: string | null;
-  created_at: string;
-}, m: { match_time: string; home_score: number; away_score: number }) {
-  let pts = 0;
-  const actualWinner = m.home_score > m.away_score ? "home" : m.home_score < m.away_score ? "away" : "draw";
-  if (p.winner && p.winner === actualWinner) pts += 5;
-  if (p.predicted_home_score === m.home_score && p.predicted_away_score === m.away_score) pts += 10;
-  if (p.total_goals_bucket && p.total_goals_bucket === bucketFor(m.home_score + m.away_score)) pts += 3;
-  const created = new Date(p.created_at).getTime();
-  const kickoff = new Date(m.match_time).getTime();
-  if (kickoff - created > 24 * 60 * 60 * 1000) pts += 2;
-  return pts;
+/**
+ * Scoring rules (authoritative):
+ *   - Exact score predicted        → 3 points
+ *   - Correct winner or draw       → 1 point
+ *   - Wrong prediction             → 0 points
+ * Idempotent: same inputs always produce the same output, so re-running
+ * on an unchanged match is safe. If the final score is later corrected,
+ * re-running recomputes everything from scratch.
+ */
+function computePoints(
+  p: {
+    winner: string | null;
+    predicted_home_score: number | null;
+    predicted_away_score: number | null;
+  },
+  m: { home_score: number; away_score: number },
+): number {
+  const actualWinner =
+    m.home_score > m.away_score ? "home" : m.home_score < m.away_score ? "away" : "draw";
+  if (
+    p.predicted_home_score === m.home_score &&
+    p.predicted_away_score === m.away_score
+  ) {
+    return 3;
+  }
+  if (p.winner && p.winner === actualWinner) return 1;
+  return 0;
 }
 
 function str(v: unknown, max = 256): string {
