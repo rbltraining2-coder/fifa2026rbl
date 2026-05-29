@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Countdown from "./Countdown";
 import TeamFlag from "./TeamFlag";
 import { getPredictionWindow } from "@/lib/predictionWindow";
@@ -35,7 +36,7 @@ export function FeatureMatchCard({
   return (
     <div
       className={`glossy-card w-full p-5 tilt-card transition-transform duration-200 hover:-translate-y-0.5 ${featured ? "featured-match" : ""}`}
-      style={featured ? ({ ["--featured-bg" as string]: `url(${featuredStadium})` } as React.CSSProperties) : undefined as never}
+      style={featured ? ({ ["--featured-bg" as string]: `url(${featuredStadium})` } as CSSProperties) : undefined}
     >
       <div className="accent-strip" />
       <div className="flex items-center justify-between mb-2 gap-2">
