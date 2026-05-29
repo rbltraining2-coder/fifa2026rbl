@@ -318,24 +318,114 @@
   }
   .rank-mine { animation: rank-glow 2.4s ease-in-out infinite; }
 
-  /* Featured upcoming match — pitch-stripe accent. */
+  /* Featured upcoming match — cinematic stadium broadcast feel. */
   .featured-match {
     position: relative;
     overflow: hidden;
+    border-radius: var(--radius-2xl);
+    border: 1px solid rgba(255,255,255,0.12);
+    background:
+      radial-gradient(120% 60% at 50% -10%, rgba(120,200,255,0.18), transparent 60%),
+      radial-gradient(80% 60% at 15% 110%, rgba(46,125,70,0.28), transparent 65%),
+      radial-gradient(80% 60% at 85% 110%, rgba(110,60,188,0.22), transparent 65%),
+      linear-gradient(160deg, rgba(20,28,42,0.96) 0%, rgba(10,14,22,0.98) 100%);
+    box-shadow:
+      0 30px 60px -25px rgba(0,0,0,0.85),
+      0 0 0 1px rgba(255,255,255,0.04) inset,
+      0 1px 0 rgba(255,255,255,0.08) inset;
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
   }
+  /* Soft floodlights — ambient drift. */
+  .featured-match::before {
+    content: "";
+    position: absolute;
+    inset: -20%;
+    background:
+      radial-gradient(closest-side, rgba(120,200,255,0.22), transparent 70%),
+      radial-gradient(closest-side, rgba(108,220,140,0.18), transparent 70%);
+    background-size: 60% 60%, 55% 55%;
+    background-repeat: no-repeat;
+    background-position: 15% 20%, 85% 80%;
+    filter: blur(30px);
+    opacity: 0.85;
+    pointer-events: none;
+    z-index: 0;
+    animation: stadium-drift 14s ease-in-out infinite alternate;
+  }
+  /* Light sweep across the card. */
   .featured-match::after {
     content: "";
     position: absolute;
-    inset: 0;
-    background:
-      repeating-linear-gradient(90deg,
-        rgba(46,125,70,0.06) 0 40px,
-        rgba(46,125,70,0.12) 40px 80px);
+    top: 0; bottom: 0;
+    left: -40%;
+    width: 35%;
+    background: linear-gradient(115deg,
+      transparent 0%,
+      rgba(255,255,255,0.05) 40%,
+      rgba(255,255,255,0.12) 50%,
+      rgba(255,255,255,0.05) 60%,
+      transparent 100%);
+    transform: skewX(-18deg);
     pointer-events: none;
     z-index: 0;
-    opacity: 0.5;
+    animation: light-sweep 7s ease-in-out infinite;
   }
   .featured-match > * { position: relative; z-index: 1; }
+
+  @keyframes stadium-drift {
+    0%   { background-position: 10% 15%, 88% 82%; }
+    50%  { background-position: 25% 30%, 72% 68%; }
+    100% { background-position: 18% 22%, 80% 78%; }
+  }
+  @keyframes light-sweep {
+    0%   { left: -40%; opacity: 0; }
+    20%  { opacity: 1; }
+    60%  { opacity: 1; }
+    100% { left: 130%; opacity: 0; }
+  }
+
+  /* Countdown pulse — only inside featured card to keep it special. */
+  .featured-match .countdown-pill {
+    animation: countdown-pulse 2.4s ease-in-out infinite;
+    box-shadow: 0 0 0 0 rgba(230,29,37,0.45);
+  }
+  @keyframes countdown-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(230,29,37,0.45); }
+    50%      { box-shadow: 0 0 0 6px rgba(230,29,37,0); }
+  }
+
+  /* Subtle neon ring around team badges inside the featured card. */
+  .featured-match .team-ring {
+    box-shadow:
+      inset 0 0 0 2px rgba(255,255,255,0.22),
+      0 0 0 1px rgba(120,200,255,0.25),
+      0 10px 28px -10px rgba(0,0,0,0.8),
+      0 0 28px -6px rgba(108,220,140,0.55) !important;
+  }
+
+  /* Dramatic VS in featured card. */
+  .featured-match .vs-mark {
+    position: relative;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    background: linear-gradient(180deg, #ffffff 0%, #9aa3b5 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 4px 24px rgba(120,200,255,0.25);
+  }
+  .featured-match .vs-mark::before,
+  .featured-match .vs-mark::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 22px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+  }
+  .featured-match .vs-mark::before { right: 100%; margin-right: 8px; }
+  .featured-match .vs-mark::after  { left: 100%;  margin-left: 8px; }
 
   /* Greeting name highlight — premium gold-glow against dark welcome card. */
   .greeting-name {

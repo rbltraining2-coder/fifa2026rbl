@@ -59,7 +59,7 @@ export function FeatureMatchCard({
             <span className={`score-display ${isLive ? "live" : ""}`}>{match.away_score}</span>
           </div>
         ) : (
-          <span className={`${featured ? "text-3xl" : "text-2xl"} font-black text-muted-foreground tracking-tight`}>VS</span>
+          <span className={`${featured ? "text-3xl vs-mark" : "text-2xl"} font-black ${featured ? "" : "text-muted-foreground"} tracking-tight`}>VS</span>
         )}
         <TeamBadge name={match.away_team} featured={featured} />
       </div>
@@ -104,7 +104,7 @@ function TeamBadge({ name, featured = false }: { name: string; featured?: boolea
   return (
     <div className={`flex flex-col items-center gap-2 ${featured ? "w-[108px]" : "w-[96px]"}`}>
       <div
-        className={`${ringSize} rounded-full overflow-hidden flex items-center justify-center transition-transform duration-300 hover:scale-105`}
+        className={`team-ring ${ringSize} rounded-full overflow-hidden flex items-center justify-center transition-transform duration-300 hover:scale-105`}
         style={{
           background: "rgba(0,0,0,0.35)",
           boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.18), 0 8px 24px -8px rgba(0,0,0,0.75), 0 0 22px -8px rgba(46,125,70,0.45)",
