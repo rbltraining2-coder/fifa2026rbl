@@ -220,6 +220,45 @@ export type Database = {
           },
         ]
       }
+      reward_winners: {
+        Row: {
+          computed_at: string
+          id: string
+          period_end: string
+          period_key: string
+          period_label: string
+          period_start: string
+          period_type: string
+          rank: number
+          total_points: number
+          user_id: string
+        }
+        Insert: {
+          computed_at?: string
+          id?: string
+          period_end: string
+          period_key: string
+          period_label: string
+          period_start: string
+          period_type: string
+          rank?: number
+          total_points?: number
+          user_id: string
+        }
+        Update: {
+          computed_at?: string
+          id?: string
+          period_end?: string
+          period_key?: string
+          period_label?: string
+          period_start?: string
+          period_type?: string
+          rank?: number
+          total_points?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       sync_logs: {
         Row: {
           created: number
@@ -268,6 +307,33 @@ export type Database = {
           status?: string
           updated?: number
           users_refreshed?: number
+        }
+        Relationships: []
+      }
+      user_badges: {
+        Row: {
+          awarded_at: string
+          badge_code: string
+          badge_description: string
+          badge_label: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          badge_code: string
+          badge_description: string
+          badge_label: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string
+          badge_code?: string
+          badge_description?: string
+          badge_label?: string
+          id?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -332,7 +398,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      recalculate_rewards_and_badges: { Args: never; Returns: Json }
     }
     Enums: {
       [_ in never]: never

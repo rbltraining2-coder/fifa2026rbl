@@ -347,6 +347,15 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
               usersRefreshed++;
             }
             console.log(`[scoring] ${usersRefreshed} user total(s) refreshed — leaderboard up to date`);
+
+            // Rebuild daily/weekly/monthly/season reward standings + badges.
+            // Idempotent server-side function — safe to call after every sync.
+            try {
+              const { error: rewardsErr } = await supabaseAdmin.rpc("recalculate_rewards_and_badges");
+              if (rewardsErr) console.error("[rewards] recompute failed:", rewardsErr.message);
+            } catch (err: any) {
+              console.error("[rewards] recompute threw:", err?.message ?? err);
+            }
           } catch (err: any) {
             console.error("[scoring] recompute failed:", err?.message ?? err);
           }

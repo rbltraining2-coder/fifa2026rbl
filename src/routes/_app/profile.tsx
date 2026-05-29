@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { Camera, ChevronRight, ListChecks, Activity, Award, LogOut } from "lucide-react";
+import { Camera, ChevronRight, ListChecks, Activity, Award, LogOut, Trophy, Star, Target, Zap, Medal, Crown } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { compressAndUploadAvatar } from "@/lib/avatar";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +40,20 @@ function ProfilePage() {
           .gt("total_points", profile?.total_points ?? 0),
       ]);
       return { matches: matches ?? 0, rank: (rank ?? 0) + 1 };
+    },
+  });
+
+  const { data: badges } = useQuery({
+    queryKey: ["my-badges", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_badges")
+        .select("badge_code, badge_label, badge_description, awarded_at")
+        .eq("user_id", user!.id)
+        .order("awarded_at", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
@@ -99,10 +113,53 @@ function ProfilePage() {
         <Stat label="Played" value={stats?.matches ?? 0} accent="#D1D4D1" />
       </section>
 
+      <section className="glossy-card p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+            <Award size={14} className="text-[color:var(--primary-glow)]" />
+            Badges
+          </h2>
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+            {badges?.length ?? 0} earned
+          </span>
+        </div>
+        {!badges || badges.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-4 text-center">
+            No badges yet — predict matches to start earning achievements.
+          </p>
+        ) : (
+          <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {badges.map((b) => (
+              <li
+                key={b.badge_code}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-white/5"
+                style={{
+                  background: "linear-gradient(135deg, rgba(245,215,110,0.10), rgba(46,125,70,0.06))",
+                }}
+                title={b.badge_description}
+              >
+                <BadgeIcon code={b.badge_code} />
+                <div className="min-w-0">
+                  <p className="text-xs font-black truncate">{b.badge_label}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{b.badge_description}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <section className="glossy-card overflow-hidden">
         <MenuItem icon={<ListChecks size={18} />} label="My Predictions" onClick={() => nav({ to: "/predictions" })} />
         <MenuItem icon={<Activity size={18} />} label="My Performance" onClick={() => toast("Coming soon")} />
-        <MenuItem icon={<Award size={18} />} label="Badges" onClick={() => toast("Coming soon")} />
+        <MenuItem
+          icon={<Award size={18} />}
+          label={`Badges (${badges?.length ?? 0})`}
+          onClick={() => {
+            const el = document.querySelector("[data-badges-section]");
+            el?.scrollIntoView({ behavior: "smooth", block: "center" });
+          }}
+        />
         <MenuItem
           icon={<LogOut size={18} />}
           label="Logout"
@@ -123,6 +180,33 @@ function Stat({ label, value, accent }: { label: string; value: string | number;
       <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
       <p className="text-xl font-black mt-1" style={{ color: accent }}>{value}</p>
     </div>
+  );
+}
+
+const BADGE_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+  first_win: Star,
+  centurion: Trophy,
+  perfect_pundit: Target,
+  oracle: Zap,
+  veteran: Medal,
+  daily_champion: Crown,
+  weekly_champion: Crown,
+  monthly_champion: Crown,
+};
+
+function BadgeIcon({ code }: { code: string }) {
+  const Icon = BADGE_ICONS[code] ?? Award;
+  return (
+    <span
+      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+      style={{
+        background: "linear-gradient(135deg, rgba(245,215,110,0.25), rgba(245,215,110,0.05))",
+        color: "#f5d76e",
+        border: "1px solid rgba(245,215,110,0.35)",
+      }}
+    >
+      <Icon size={15} />
+    </span>
   );
 }
 
