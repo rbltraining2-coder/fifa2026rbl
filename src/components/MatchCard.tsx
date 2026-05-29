@@ -39,6 +39,7 @@ export function FeatureMatchCard({
       style={featured ? ({ ["--featured-bg" as string]: `url(${featuredStadium})` } as CSSProperties) : undefined}
     >
       <div className="accent-strip" />
+      {featured && <div className="particles" aria-hidden />}
       <div className="flex items-center justify-between mb-2 gap-2">
         {featured ? (
           <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--primary-glow)]">
