@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Trophy, Calendar, CalendarDays, CalendarRange, Crown } from "lucide-react";
 import championBanner from "@/assets/champion-cup-banner.png";
+import { useUserRankingStats, sortAndRank } from "@/lib/ranking";
 
 export const Route = createFileRoute("/_app/rewards")({
   head: () => ({
@@ -44,6 +45,7 @@ const TABS: { id: PeriodType; label: string; icon: typeof Calendar }[] = [
 function RewardsPage() {
   const { user } = useAuth();
   const [tab, setTab] = useState<PeriodType>("weekly");
+  const { data: stats } = useUserRankingStats();
 
   const { data: rows, isLoading } = useQuery({
     queryKey: ["reward_winners", tab],
@@ -53,26 +55,11 @@ function RewardsPage() {
         .select("*")
         .eq("period_type", tab)
         .order("period_start", { ascending: false })
-        .order("rank", { ascending: true })
         .limit(500);
       if (error) throw error;
       return (data ?? []) as RewardRow[];
     },
   });
-
-  const periods = useMemo(() => {
-    const map = new Map<string, RewardRow[]>();
-    (rows ?? []).forEach((r) => {
-      const arr = map.get(r.period_key) ?? [];
-      arr.push(r);
-      map.set(r.period_key, arr);
-    });
-    return Array.from(map.entries()).map(([key, items]) => ({
-      key,
-      label: items[0].period_label,
-      items: items.sort((a, b) => a.rank - b.rank),
-    }));
-  }, [rows]);
 
   // Resolve user-friendly names for the listed user_ids.
   const allUserIds = useMemo(
@@ -95,6 +82,25 @@ function RewardsPage() {
       return m;
     },
   });
+
+  const periods = useMemo(() => {
+    const map = new Map<string, RewardRow[]>();
+    (rows ?? []).forEach((r) => {
+      const arr = map.get(r.period_key) ?? [];
+      arr.push(r);
+      map.set(r.period_key, arr);
+    });
+    return Array.from(map.entries()).map(([key, items]) => {
+      const ranked = sortAndRank(
+        items,
+        (r) => r.user_id,
+        (r) => nameMap?.get(r.user_id)?.name ?? r.user_id,
+        (r) => r.total_points,
+        stats,
+      );
+      return { key, label: items[0].period_label, items: ranked };
+    });
+  }, [rows, stats, nameMap]);
 
   return (
     <div className="space-y-5">
