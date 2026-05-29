@@ -1,7 +1,9 @@
+import type { CSSProperties } from "react";
 import Countdown from "./Countdown";
 import TeamFlag from "./TeamFlag";
 import { getPredictionWindow } from "@/lib/predictionWindow";
 import { formatIstShort, IST_LABEL } from "@/lib/ist";
+import featuredStadium from "@/assets/featured-stadium.jpg";
 
 export type Match = {
   id: string;
@@ -32,8 +34,12 @@ export function FeatureMatchCard({
   const isCompleted = match.status === "completed";
   const showScore = (isLive || isCompleted) && match.home_score != null && match.away_score != null;
   return (
-    <div className={`glossy-card w-full p-5 tilt-card transition-transform duration-200 hover:-translate-y-0.5 ${featured ? "featured-match" : ""}`}>
+    <div
+      className={`glossy-card w-full p-5 tilt-card transition-transform duration-200 hover:-translate-y-0.5 ${featured ? "featured-match" : ""}`}
+      style={featured ? ({ ["--featured-bg" as string]: `url(${featuredStadium})` } as CSSProperties) : undefined}
+    >
       <div className="accent-strip" />
+      {featured && <div className="particles" aria-hidden />}
       <div className="flex items-center justify-between mb-2 gap-2">
         {featured ? (
           <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--primary-glow)]">

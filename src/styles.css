@@ -325,18 +325,15 @@
     border-radius: var(--radius-2xl);
     border: 1px solid rgba(120,200,255,0.18);
     background:
-      /* central pitch spotlight */
-      radial-gradient(60% 45% at 50% 60%, rgba(108,220,140,0.22), transparent 70%),
-      /* upper stadium glow */
-      radial-gradient(120% 55% at 50% -10%, rgba(120,200,255,0.22), transparent 65%),
-      /* corner floodlights */
-      radial-gradient(70% 50% at 10% 30%, rgba(80,150,230,0.18), transparent 70%),
-      radial-gradient(70% 50% at 90% 30%, rgba(108,220,140,0.14), transparent 70%),
-      /* faint pitch mow lines */
-      repeating-linear-gradient(90deg,
-        rgba(46,125,70,0.05) 0 22px,
-        rgba(46,125,70,0.10) 22px 44px),
-      linear-gradient(160deg, rgba(16,24,38,0.96) 0%, rgba(8,12,20,0.99) 100%);
+      /* vignette for readability */
+      radial-gradient(ellipse at center, transparent 35%, rgba(4,8,16,0.55) 80%, rgba(4,8,16,0.85) 100%),
+      /* dark cinematic gradient overlay */
+      linear-gradient(160deg, rgba(8,14,26,0.78) 0%, rgba(6,12,22,0.62) 50%, rgba(4,10,18,0.85) 100%),
+      /* blue-green lighting blend */
+      linear-gradient(115deg, rgba(40,90,180,0.30) 0%, transparent 45%, rgba(60,180,110,0.28) 100%),
+      /* stadium image */
+      var(--featured-bg, none) center/cover no-repeat,
+      #0a1020;
     box-shadow:
       0 30px 60px -25px rgba(0,0,0,0.9),
       0 0 60px -20px rgba(120,200,255,0.25),
@@ -381,6 +378,28 @@
     animation: light-sweep 7s ease-in-out infinite;
   }
   .featured-match > * { position: relative; z-index: 1; }
+
+  /* Floating particles layer for the featured card. */
+  .featured-match .particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      radial-gradient(2px 2px at 12% 30%, rgba(180,255,200,0.65), transparent 60%),
+      radial-gradient(1.5px 1.5px at 78% 18%, rgba(160,210,255,0.55), transparent 60%),
+      radial-gradient(1.5px 1.5px at 35% 70%, rgba(180,255,200,0.45), transparent 60%),
+      radial-gradient(2px 2px at 88% 62%, rgba(160,210,255,0.5), transparent 60%),
+      radial-gradient(1.5px 1.5px at 55% 40%, rgba(220,255,230,0.5), transparent 60%),
+      radial-gradient(1.5px 1.5px at 22% 85%, rgba(160,210,255,0.45), transparent 60%);
+    animation: particles-float 12s ease-in-out infinite alternate;
+    opacity: 0.85;
+  }
+  @keyframes particles-float {
+    0%   { transform: translate3d(0, 0, 0); }
+    50%  { transform: translate3d(2px, -6px, 0); }
+    100% { transform: translate3d(-2px, 4px, 0); }
+  }
 
   @keyframes stadium-drift {
     0%   { background-position: 10% 15%, 88% 82%; }
