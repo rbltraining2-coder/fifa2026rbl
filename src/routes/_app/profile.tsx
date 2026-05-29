@@ -183,6 +183,33 @@ function Stat({ label, value, accent }: { label: string; value: string | number;
   );
 }
 
+const BADGE_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+  first_win: Star,
+  centurion: Trophy,
+  perfect_pundit: Target,
+  oracle: Zap,
+  veteran: Medal,
+  daily_champion: Crown,
+  weekly_champion: Crown,
+  monthly_champion: Crown,
+};
+
+function BadgeIcon({ code }: { code: string }) {
+  const Icon = BADGE_ICONS[code] ?? Award;
+  return (
+    <span
+      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+      style={{
+        background: "linear-gradient(135deg, rgba(245,215,110,0.25), rgba(245,215,110,0.05))",
+        color: "#f5d76e",
+        border: "1px solid rgba(245,215,110,0.35)",
+      }}
+    >
+      <Icon size={15} />
+    </span>
+  );
+}
+
 function MenuItem({
   icon,
   label,
