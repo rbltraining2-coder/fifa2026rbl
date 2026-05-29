@@ -9,7 +9,7 @@ import TeamFlag from "@/components/TeamFlag";
 import { Lock, CalendarDays, Sparkles } from "lucide-react";
 import { getPredictionWindow } from "@/lib/predictionWindow";
 import { formatIstDateTime, IST_LABEL } from "@/lib/ist";
-import promoBanner from "@/assets/promo-banner.png";
+import promoBanner from "@/assets/home-banner.png";
 
 export const Route = createFileRoute("/_app/")({
   head: () => ({
@@ -96,8 +96,9 @@ function HomePage() {
         />
       </section>
       <section className="glossy-card welcome-card p-5">
-        <p className="text-[11px] uppercase tracking-[0.18em] font-bold text-[color:var(--success)]">
-          {greeting().toUpperCase()}, {(profile?.name || "Guru").toUpperCase()}!
+        <p className="text-xs sm:text-sm uppercase tracking-[0.16em] font-extrabold">
+          <span className="text-white/70">{greeting().toUpperCase()}, </span>
+          <span className="greeting-name">{(profile?.name || "Guru").toUpperCase()}!</span>
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
           {today.length > 0
