@@ -116,14 +116,20 @@
   body {
     background-color: var(--color-background);
     background-image:
-      radial-gradient(ellipse 80% 60% at 20% 0%, rgba(46,125,70,0.18), transparent 60%),
-      radial-gradient(ellipse 70% 50% at 80% 10%, rgba(110,60,188,0.14), transparent 65%),
-      radial-gradient(ellipse 100% 60% at 50% 100%, rgba(230,29,37,0.08), transparent 70%),
-      linear-gradient(180deg, rgba(8,14,30,0.72) 0%, rgba(8,14,30,0.92) 100%),
-      var(--bg-stadium, none);
-    background-size: cover, cover, cover, cover, cover;
-    background-position: center, center, center, center, center;
-    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+      /* Stadium floodlights */
+      radial-gradient(ellipse 90% 55% at 18% -5%, rgba(46,125,70,0.32), transparent 60%),
+      radial-gradient(ellipse 80% 50% at 82% 0%, rgba(110,60,188,0.22), transparent 65%),
+      radial-gradient(ellipse 120% 60% at 50% 105%, rgba(230,29,37,0.10), transparent 70%),
+      /* Centre-circle glow */
+      radial-gradient(circle at 50% 60%, rgba(46,125,70,0.10), transparent 45%),
+      /* Pitch stripes — alternating mow lines */
+      repeating-linear-gradient(180deg,
+        rgba(46,125,70,0.045) 0 60px,
+        rgba(46,125,70,0.085) 60px 120px),
+      linear-gradient(180deg, rgba(8,14,30,0.78) 0%, rgba(8,14,30,0.94) 100%);
+    background-size: cover, cover, cover, cover, auto, cover;
+    background-position: center, center, center, center, center, center;
+    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat, no-repeat;
     background-attachment: fixed;
     color: var(--color-foreground);
     font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
@@ -330,4 +336,14 @@
     opacity: 0.5;
   }
   .featured-match > * { position: relative; z-index: 1; }
+
+  /* Greeting name highlight — premium gold-glow against dark welcome card. */
+  .greeting-name {
+    background: linear-gradient(180deg, #FFE89C 0%, #F5C24A 60%, #E8A92F 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 18px rgba(245,194,74,0.35);
+    letter-spacing: 0.04em;
+  }
 }
