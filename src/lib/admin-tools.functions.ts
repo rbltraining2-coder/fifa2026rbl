@@ -147,6 +147,13 @@ export const recalculateLeaderboard = createServerFn({ method: "POST" })
       users_refreshed: usersRefreshed,
     });
 
+    // Rebuild rewards + badges so daily/weekly/monthly/season are up to date.
+    try {
+      await supabaseAdmin.rpc("recalculate_rewards_and_badges");
+    } catch (err) {
+      console.error("[admin] rewards recompute failed:", err);
+    }
+
     return { predictionsUpdated, usersRefreshed, totalUsers: users?.length ?? 0 };
   });
 
@@ -206,6 +213,7 @@ export const completeMatchManually = createServerFn({ method: "POST" })
       updated: 1,
       users_refreshed: affectedUsers.size,
     });
+    try { await supabaseAdmin.rpc("recalculate_rewards_and_badges"); } catch {}
     return { ok: true, usersRefreshed: affectedUsers.size };
   });
 
