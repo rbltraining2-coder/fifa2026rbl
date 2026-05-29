@@ -6,6 +6,7 @@ import { Crown, Trophy, Medal, History as HistoryIcon, ChevronLeft } from "lucid
 import { useState } from "react";
 import TeamFlag from "@/components/TeamFlag";
 import { formatIstDateTime, IST_LABEL } from "@/lib/ist";
+import { useUserRankingStats, sortAndRank } from "@/lib/ranking";
 
 export const Route = createFileRoute("/_app/leaderboard")({
   head: () => ({
@@ -48,21 +49,26 @@ function LeaderboardPage() {
   const [tab, setTab] = useState<"standings" | "history">("standings");
   const [selectedMatch, setSelectedMatch] = useState<CompletedMatch | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data: stats } = useUserRankingStats();
+  const { data: rawRows, isLoading } = useQuery({
     queryKey: ["leaderboard"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("registered_users")
         .select("id, employee_id, name, avatar_url, total_points")
-        .order("total_points", { ascending: false })
-        .order("employee_id", { ascending: true })
         .limit(500);
       if (error) throw error;
       return (data ?? []) as Row[];
     },
   });
 
-  const rows = data ?? [];
+  const rows = sortAndRank(
+    rawRows ?? [],
+    (r) => r.employee_id,
+    (r) => r.name || r.employee_id,
+    (r) => r.total_points ?? 0,
+    stats,
+  );
   const top3 = rows.slice(0, 3);
   const rest = rows.slice(3);
   const myIdx = rows.findIndex((r) => r.id === user?.id);
@@ -130,7 +136,7 @@ function LeaderboardPage() {
 
       <ul className="space-y-2">
         {rest.map((r, i) => {
-          const rank = i + 4;
+          const rank = r.rank;
           const mine = r.id === user?.id;
           return (
             <li
@@ -168,7 +174,7 @@ function LeaderboardPage() {
           <div
             className="mx-auto max-w-2xl glossy-card p-3 flex items-center gap-3 rank-mine"
           >
-            <span className="w-9 text-center text-base font-black tabular-nums">#{myIdx + 1}</span>
+            <span className="w-9 text-center text-base font-black tabular-nums">#{me.rank}</span>
             <Avatar url={me.avatar_url} code={me.employee_id} />
             <div className="flex-1">
               <p className="text-sm font-black tracking-tight">Your Rank</p>
