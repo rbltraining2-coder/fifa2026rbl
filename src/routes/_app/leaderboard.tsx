@@ -276,7 +276,8 @@ function MatchHistoryDetail({
   onBack: () => void;
   currentUserId: string | undefined;
 }) {
-  const { data, isLoading } = useQuery({
+  const { data: stats } = useUserRankingStats();
+  const { data: rawData, isLoading } = useQuery({
     queryKey: ["leaderboard", "history", "match", match.id],
     queryFn: async () => {
       const { data: preds, error: pErr } = await supabase
@@ -293,11 +294,17 @@ function MatchHistoryDetail({
         .in("employee_id", ids);
       if (uErr) throw uErr;
       const nameMap = new Map((users ?? []).map((u) => [u.employee_id as string, (u.name as string) || (u.employee_id as string)]));
-      return rows
-        .map((r) => ({ ...r, name: nameMap.get(r.user_id) ?? r.user_id }))
-        .sort((a, b) => b.points_earned - a.points_earned || a.name.localeCompare(b.name));
+      return rows.map((r) => ({ ...r, name: nameMap.get(r.user_id) ?? r.user_id }));
     },
   });
+
+  const data = sortAndRank(
+    rawData ?? [],
+    (r) => r.user_id,
+    (r) => r.name,
+    (r) => r.points_earned ?? 0,
+    stats,
+  );
 
   return (
     <div className="space-y-4">
@@ -333,14 +340,14 @@ function MatchHistoryDetail({
         <ul className="space-y-2">
           {[0, 1, 2].map((i) => <li key={i} className="skeleton h-[56px]" />)}
         </ul>
-      ) : (data ?? []).length === 0 ? (
+      ) : data.length === 0 ? (
         <div className="glossy-card p-8 text-center">
           <p className="text-sm font-semibold">No predictions for this match</p>
         </div>
       ) : (
         <ul className="space-y-2">
-          {(data ?? []).map((p, i) => {
-            const rank = i + 1;
+          {data.map((p) => {
+            const rank = p.rank;
             const mine = p.user_id === currentUserId;
             return (
               <li
