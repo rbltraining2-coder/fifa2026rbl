@@ -399,6 +399,10 @@ export type Database = {
     }
     Functions: {
       recalculate_rewards_and_badges: { Args: never; Returns: Json }
+      refresh_scoring_totals_rewards: {
+        Args: { _match_ids?: string[] }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
