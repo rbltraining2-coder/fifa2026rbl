@@ -8,15 +8,43 @@ import { supabase } from "@/integrations/supabase/client";
  *
  * Primary order:    total points DESC
  * Tiebreakers:      1) exact-score predictions DESC
- *                   2) earliest first prediction submission ASC
- *                   3) name (alphabetical) ASC
+ *                   2) correct-winner predictions DESC
+ *                   3) earliest first prediction submission ASC
+ *                   4) name (alphabetical) ASC
  *
  * Rank assignment uses competition ranking: equal points share the same rank
  * and the next distinct score skips ahead (1, 2, 2, 4 …).
  */
 
-export type UserStat = { exactCount: number; firstAt: string };
+export type UserStat = { exactCount: number; winnerCount: number; firstAt: string };
 export type UserStatMap = Map<string, UserStat>;
+
+export function buildUserStatMap<T>(
+  rows: T[],
+  getUserId: (r: T) => string,
+  getPoints: (r: T) => number,
+  getCreatedAt: (r: T) => string,
+): UserStatMap {
+  const map: UserStatMap = new Map();
+  for (const row of rows) {
+    const userId = getUserId(row);
+    const points = getPoints(row);
+    const createdAt = getCreatedAt(row);
+    const cur = map.get(userId);
+    if (!cur) {
+      map.set(userId, {
+        exactCount: points === 3 ? 1 : 0,
+        winnerCount: points === 1 ? 1 : 0,
+        firstAt: createdAt,
+      });
+    } else {
+      if (points === 3) cur.exactCount += 1;
+      if (points === 1) cur.winnerCount += 1;
+      if (createdAt < cur.firstAt) cur.firstAt = createdAt;
+    }
+  }
+  return map;
+}
 
 /** Fetch per-user tiebreaker stats from the predictions table. */
 export function useUserRankingStats() {
@@ -39,10 +67,12 @@ export function useUserRankingStats() {
           if (!cur) {
             map.set(p.user_id, {
               exactCount: p.points_earned === 3 ? 1 : 0,
+              winnerCount: p.points_earned === 1 ? 1 : 0,
               firstAt: p.created_at,
             });
           } else {
             if (p.points_earned === 3) cur.exactCount += 1;
+            if (p.points_earned === 1) cur.winnerCount += 1;
             if (p.created_at < cur.firstAt) cur.firstAt = p.created_at;
           }
         }
@@ -65,6 +95,9 @@ export function compareTiebreakers(
   const ae = sa?.exactCount ?? 0;
   const be = sb?.exactCount ?? 0;
   if (be !== ae) return be - ae;
+  const aw = sa?.winnerCount ?? 0;
+  const bw = sb?.winnerCount ?? 0;
+  if (bw !== aw) return bw - aw;
   const af = sa?.firstAt ?? "\uffff";
   const bf = sb?.firstAt ?? "\uffff";
   if (af !== bf) return af < bf ? -1 : 1;

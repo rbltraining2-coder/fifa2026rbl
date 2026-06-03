@@ -3,10 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Crown, Trophy, Medal, History as HistoryIcon, ChevronLeft } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import TeamFlag from "@/components/TeamFlag";
 import { formatIstDateTime, IST_LABEL } from "@/lib/ist";
-import { useUserRankingStats, sortAndRank } from "@/lib/ranking";
+import { buildUserStatMap, sortAndRank } from "@/lib/ranking";
 
 export const Route = createFileRoute("/_app/leaderboard")({
   head: () => ({
@@ -22,7 +22,18 @@ export const Route = createFileRoute("/_app/leaderboard")({
   component: LeaderboardPage,
 });
 
-type Row = { id: string; employee_id: string; name: string; avatar_url: string | null; total_points: number };
+type Row = {
+  id: string;
+  employee_id: string;
+  name: string;
+  avatar_url: string | null;
+  total_points: number;
+  exact_hits: number;
+  winner_hits: number;
+  played: number;
+  accuracy: number;
+  first_prediction_at: string;
+};
 
 type CompletedMatch = {
   id: string;
@@ -42,32 +53,104 @@ type MatchPredictionRow = {
   predicted_away_score: number | null;
   winner: string | null;
   points_earned: number;
+  created_at: string;
+};
+
+type PredictionAggregateRow = {
+  id: string;
+  user_id: string;
+  match_id: string;
+  points_earned: number;
+  created_at: string;
 };
 
 function LeaderboardPage() {
   const { user } = useAuth();
-  const [tab, setTab] = useState<"standings" | "history">("standings");
+  const [tab, setTab] = useState<"overall" | "history">("overall");
   const [selectedMatch, setSelectedMatch] = useState<CompletedMatch | null>(null);
 
-  const { data: stats } = useUserRankingStats();
-  const { data: rawRows, isLoading } = useQuery({
-    queryKey: ["leaderboard"],
+  const { data: leaderboardData, isLoading } = useQuery({
+    queryKey: ["leaderboard", "overall-completed-aggregate"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const [{ data: matches, error: mErr }, { data: users, error: uErr }] = await Promise.all([
+        supabase
+          .from("matches")
+          .select("id")
+          .eq("status", "completed")
+          .not("home_score", "is", null)
+          .not("away_score", "is", null)
+          .limit(1000),
+        supabase
         .from("registered_users")
         .select("id, employee_id, name, avatar_url, total_points")
-        .limit(500);
-      if (error) throw error;
-      return (data ?? []) as Row[];
+          .limit(500),
+      ]);
+      if (mErr) throw mErr;
+      if (uErr) throw uErr;
+
+      const completedIds = new Set((matches ?? []).map((m) => m.id as string));
+      const preds: PredictionAggregateRow[] = [];
+      const pageSize = 1000;
+      for (let from = 0; ; from += pageSize) {
+        const { data, error } = await supabase
+          .from("predictions")
+          .select("id, user_id, match_id, points_earned, created_at")
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        preds.push(...((data ?? []) as PredictionAggregateRow[]));
+        if ((data ?? []).length < pageSize) break;
+      }
+
+      const scoredPreds = preds.filter((p) => completedIds.has(p.match_id));
+      const statMap = buildUserStatMap(scoredPreds, (p) => p.user_id, (p) => p.points_earned ?? 0, (p) => p.created_at);
+      const aggregates = new Map<string, Pick<Row, "total_points" | "exact_hits" | "winner_hits" | "played" | "accuracy" | "first_prediction_at">>();
+      for (const p of scoredPreds) {
+        const cur = aggregates.get(p.user_id) ?? {
+          total_points: 0,
+          exact_hits: 0,
+          winner_hits: 0,
+          played: 0,
+          accuracy: 0,
+          first_prediction_at: p.created_at,
+        };
+        cur.total_points += p.points_earned ?? 0;
+        cur.exact_hits += p.points_earned === 3 ? 1 : 0;
+        cur.winner_hits += p.points_earned === 1 ? 1 : 0;
+        cur.played += 1;
+        if (p.created_at < cur.first_prediction_at) cur.first_prediction_at = p.created_at;
+        aggregates.set(p.user_id, cur);
+      }
+
+      const rows = ((users ?? []) as Pick<Row, "id" | "employee_id" | "name" | "avatar_url" | "total_points">[]).map((u) => {
+        const a = aggregates.get(u.employee_id) ?? {
+          total_points: 0,
+          exact_hits: 0,
+          winner_hits: 0,
+          played: 0,
+          accuracy: 0,
+          first_prediction_at: "\uffff",
+        };
+        const correct = a.exact_hits + a.winner_hits;
+        return {
+          ...u,
+          total_points: a.total_points,
+          exact_hits: a.exact_hits,
+          winner_hits: a.winner_hits,
+          played: a.played,
+          accuracy: a.played > 0 ? Math.round((correct / a.played) * 100) : 0,
+          first_prediction_at: a.first_prediction_at,
+        } as Row;
+      });
+      return { rows, statMap };
     },
   });
 
   const rows = sortAndRank(
-    rawRows ?? [],
+    leaderboardData?.rows ?? [],
     (r) => r.employee_id,
     (r) => r.name || r.employee_id,
     (r) => r.total_points ?? 0,
-    stats,
+    leaderboardData?.statMap,
   );
   const top3 = rows.slice(0, 3);
   const rest = rows.slice(3);
@@ -83,10 +166,10 @@ function LeaderboardPage() {
 
       <div className="glossy-card p-1 inline-flex gap-1 w-full">
         <button
-          onClick={() => { setTab("standings"); setSelectedMatch(null); }}
-          className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${tab === "standings" ? "bg-white/10 text-white shadow-inner" : "text-muted-foreground hover:text-white"}`}
+          onClick={() => { setTab("overall"); setSelectedMatch(null); }}
+          className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${tab === "overall" ? "bg-white/10 text-white shadow-inner" : "text-muted-foreground hover:text-white"}`}
         >
-          <Trophy size={14} className="inline mr-1.5 -mt-0.5" /> Standings
+          <Trophy size={14} className="inline mr-1.5 -mt-0.5" /> Overall
         </button>
         <button
           onClick={() => setTab("history")}
@@ -169,7 +252,7 @@ function LeaderboardPage() {
       </>
       )}
 
-      {tab === "standings" && me && (
+      {tab === "overall" && me && (
         <div className="fixed bottom-[88px] inset-x-0 z-30 px-4">
           <div
             className="mx-auto max-w-2xl glossy-card p-3 flex items-center gap-3 rank-mine"
@@ -276,13 +359,12 @@ function MatchHistoryDetail({
   onBack: () => void;
   currentUserId: string | undefined;
 }) {
-  const { data: stats } = useUserRankingStats();
   const { data: rawData, isLoading } = useQuery({
     queryKey: ["leaderboard", "history", "match", match.id],
     queryFn: async () => {
       const { data: preds, error: pErr } = await supabase
         .from("predictions")
-        .select("id, user_id, predicted_home_score, predicted_away_score, winner, points_earned")
+        .select("id, user_id, predicted_home_score, predicted_away_score, winner, points_earned, created_at")
         .eq("match_id", match.id);
       if (pErr) throw pErr;
       const rows = (preds ?? []) as MatchPredictionRow[];
@@ -297,6 +379,11 @@ function MatchHistoryDetail({
       return rows.map((r) => ({ ...r, name: nameMap.get(r.user_id) ?? r.user_id }));
     },
   });
+
+  const stats = useMemo(
+    () => buildUserStatMap(rawData ?? [], (r) => r.user_id, (r) => r.points_earned ?? 0, (r) => r.created_at),
+    [rawData],
+  );
 
   const data = sortAndRank(
     rawData ?? [],

@@ -198,9 +198,14 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
             continue;
             }
 
-            // Stop syncing matches that have already been finalized — frees the
-            // free-tier API quota and prevents accidental score rewrites.
-            if (m && (m as any).status === "completed") {
+            // Skip an already-finalized match only when the final data is
+            // unchanged. Score corrections still flow through and re-score.
+            if (
+              m &&
+              (m as any).status === "completed" &&
+              m.home_score === homeScore &&
+              m.away_score === awayScore
+            ) {
               skippedCompleted++;
               continue;
             }
@@ -279,83 +284,14 @@ export const Route = createFileRoute("/api/public/sync-external-scores")({
         if (updatedMatchIds.length > 0) {
           try {
             console.log(`[scoring] recomputing for ${updatedMatchIds.length} completed match(es)`);
-            const { data: fresh, error: freshErr } = await supabaseAdmin
-              .from("matches")
-              .select("id, home_score, away_score")
-              .in("id", updatedMatchIds);
-            if (freshErr) throw freshErr;
-            const matchById = new Map((fresh ?? []).map((m) => [m.id, m]));
-
-            const { data: preds, error: predsErr } = await supabaseAdmin
-              .from("predictions")
-              .select("id, user_id, match_id, winner, predicted_home_score, predicted_away_score, points_earned")
-              .in("match_id", updatedMatchIds);
-            if (predsErr) throw predsErr;
-
-            const affectedUsers = new Set<string>();
-            for (const p of preds ?? []) {
-              const m = matchById.get(p.match_id);
-              if (!m || m.home_score == null || m.away_score == null) continue;
-              const earned = computePoints(p, {
-                home_score: m.home_score,
-                away_score: m.away_score,
-              });
-              affectedUsers.add(p.user_id);
-              // Skip the write when value is unchanged — prevents duplicate updates.
-              if ((p.points_earned ?? 0) === earned) continue;
-              const { error: upPredErr } = await supabaseAdmin
-                .from("predictions")
-                .update({ points_earned: earned })
-                .eq("id", p.id);
-              if (upPredErr) {
-                console.error(`[scoring] prediction ${p.id} update failed:`, upPredErr.message);
-                continue;
-              }
-              predictionsUpdated++;
-            }
-            console.log(`[scoring] ${predictionsUpdated} prediction point row(s) updated; ${affectedUsers.size} user(s) affected`);
-
-            // Recompute each affected user's total from scratch (authoritative)
-            // and only write when the value actually changed.
-            for (const userId of affectedUsers) {
-              const { data: userPreds, error: upErr } = await supabaseAdmin
-                .from("predictions")
-                .select("points_earned")
-                .eq("user_id", userId);
-              if (upErr) {
-                console.error(`[scoring] aggregate fetch failed for ${userId}:`, upErr.message);
-                continue;
-              }
-              const total = (userPreds ?? []).reduce(
-                (s, r) => s + (r.points_earned ?? 0),
-                0,
-              );
-              const { data: existing } = await supabaseAdmin
-                .from("registered_users")
-                .select("total_points")
-                .eq("employee_id", userId)
-                .maybeSingle();
-              if (existing && (existing.total_points ?? 0) === total) continue;
-              const { error: writeErr } = await supabaseAdmin
-                .from("registered_users")
-                .update({ total_points: total })
-                .eq("employee_id", userId);
-              if (writeErr) {
-                console.error(`[scoring] total write failed for ${userId}:`, writeErr.message);
-                continue;
-              }
-              usersRefreshed++;
-            }
-            console.log(`[scoring] ${usersRefreshed} user total(s) refreshed — leaderboard up to date`);
-
-            // Rebuild daily/weekly/monthly/season reward standings + badges.
-            // Idempotent server-side function — safe to call after every sync.
-            try {
-              const { error: rewardsErr } = await supabaseAdmin.rpc("recalculate_rewards_and_badges");
-              if (rewardsErr) console.error("[rewards] recompute failed:", rewardsErr.message);
-            } catch (err: any) {
-              console.error("[rewards] recompute threw:", err?.message ?? err);
-            }
+            const { data: refresh, error: refreshErr } = await supabaseAdmin.rpc(
+              "refresh_scoring_totals_rewards",
+              { _match_ids: updatedMatchIds },
+            );
+            if (refreshErr) throw refreshErr;
+            predictionsUpdated = Number((refresh as any)?.predictions_changed ?? 0);
+            usersRefreshed = Number((refresh as any)?.users_refreshed ?? 0);
+            console.log(`[scoring] ${predictionsUpdated} prediction row(s), ${usersRefreshed} user total(s), rewards refreshed`);
           } catch (err: any) {
             console.error("[scoring] recompute failed:", err?.message ?? err);
           }

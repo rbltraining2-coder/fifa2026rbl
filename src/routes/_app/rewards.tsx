@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Trophy, Calendar, CalendarDays, CalendarRange, Crown } from "lucide-react";
 import championBanner from "@/assets/champion-cup-banner.png";
-import { useUserRankingStats, sortAndRank } from "@/lib/ranking";
+import { buildUserStatMap, sortAndRank } from "@/lib/ranking";
 
 export const Route = createFileRoute("/_app/rewards")({
   head: () => ({
@@ -35,6 +35,15 @@ type RewardRow = {
   rank: number;
 };
 
+type RewardPredictionRow = {
+  user_id: string;
+  match_id: string;
+  points_earned: number;
+  created_at: string;
+};
+
+type RewardMatchRow = { id: string; match_time: string };
+
 const TABS: { id: PeriodType; label: string; icon: typeof Calendar }[] = [
   { id: "daily",   label: "Daily",   icon: Calendar },
   { id: "weekly",  label: "Weekly",  icon: CalendarDays },
@@ -45,7 +54,6 @@ const TABS: { id: PeriodType; label: string; icon: typeof Calendar }[] = [
 function RewardsPage() {
   const { user } = useAuth();
   const [tab, setTab] = useState<PeriodType>("weekly");
-  const { data: stats } = useUserRankingStats();
 
   const { data: rows, isLoading } = useQuery({
     queryKey: ["reward_winners", tab],
@@ -83,6 +91,33 @@ function RewardsPage() {
     },
   });
 
+  const { data: periodStatsSource } = useQuery({
+    queryKey: ["reward_winners", "period-ranking-source", tab],
+    queryFn: async () => {
+      const { data: matches, error: mErr } = await supabase
+        .from("matches")
+        .select("id, match_time")
+        .eq("status", "completed")
+        .not("home_score", "is", null)
+        .not("away_score", "is", null)
+        .limit(1000);
+      if (mErr) throw mErr;
+      const matchById = new Map((matches ?? []).map((m) => [m.id as string, m as RewardMatchRow]));
+      const predictions: RewardPredictionRow[] = [];
+      const pageSize = 1000;
+      for (let from = 0; ; from += pageSize) {
+        const { data, error } = await supabase
+          .from("predictions")
+          .select("user_id, match_id, points_earned, created_at")
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        predictions.push(...((data ?? []) as RewardPredictionRow[]));
+        if ((data ?? []).length < pageSize) break;
+      }
+      return { matchById, predictions };
+    },
+  });
+
   const periods = useMemo(() => {
     const map = new Map<string, RewardRow[]>();
     (rows ?? []).forEach((r) => {
@@ -91,16 +126,32 @@ function RewardsPage() {
       map.set(r.period_key, arr);
     });
     return Array.from(map.entries()).map(([key, items]) => {
+      const first = items[0];
+      const periodStart = Date.parse(first.period_start);
+      const periodEnd = Date.parse(first.period_end);
+      const periodPredictions = (periodStatsSource?.predictions ?? []).filter((p) => {
+        const m = periodStatsSource?.matchById.get(p.match_id);
+        if (!m) return false;
+        if (tab === "season") return true;
+        const t = Date.parse(m.match_time);
+        return t >= periodStart && t < periodEnd;
+      });
+      const periodStats = buildUserStatMap(
+        periodPredictions,
+        (p) => p.user_id,
+        (p) => p.points_earned ?? 0,
+        (p) => p.created_at,
+      );
       const ranked = sortAndRank(
         items,
         (r) => r.user_id,
         (r) => nameMap?.get(r.user_id)?.name ?? r.user_id,
         (r) => r.total_points,
-        stats,
+        periodStats,
       );
       return { key, label: items[0].period_label, items: ranked };
     });
-  }, [rows, stats, nameMap]);
+  }, [rows, tab, periodStatsSource, nameMap]);
 
   return (
     <div className="space-y-5">

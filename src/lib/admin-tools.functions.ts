@@ -87,57 +87,12 @@ export const recalculateLeaderboard = createServerFn({ method: "POST" })
     await assertAdmin(data.adminEmployeeId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // 1. Recompute points_earned for every prediction tied to a completed match.
-    const { data: completedMatches, error: mErr } = await supabaseAdmin
-      .from("matches")
-      .select("id, home_score, away_score")
-      .eq("status", "completed");
-    if (mErr) throw new Error(mErr.message);
-    const matchById = new Map(
-      (completedMatches ?? []).map((m) => [m.id, m]),
-    );
-
-    const { data: allPreds, error: pErr } = await supabaseAdmin
-      .from("predictions")
-      .select("id, user_id, match_id, winner, predicted_home_score, predicted_away_score, points_earned");
-    if (pErr) throw new Error(pErr.message);
-
-    let predictionsUpdated = 0;
-    const affectedUsers = new Set<string>();
-    for (const p of allPreds ?? []) {
-      affectedUsers.add(p.user_id);
-      const m = matchById.get(p.match_id);
-      const earned = m && m.home_score != null && m.away_score != null
-        ? computePoints(p, { home_score: m.home_score, away_score: m.away_score })
-        : 0;
-      if ((p.points_earned ?? 0) === earned) continue;
-      const { error } = await supabaseAdmin
-        .from("predictions")
-        .update({ points_earned: earned })
-        .eq("id", p.id);
-      if (!error) predictionsUpdated++;
-    }
-
-    // 2. Recompute total_points for every registered user.
-    const { data: users, error: uErr } = await supabaseAdmin
-      .from("registered_users")
-      .select("employee_id, total_points");
-    if (uErr) throw new Error(uErr.message);
-
-    let usersRefreshed = 0;
-    for (const u of users ?? []) {
-      const { data: rows } = await supabaseAdmin
-        .from("predictions")
-        .select("points_earned")
-        .eq("user_id", u.employee_id);
-      const total = (rows ?? []).reduce((s, r) => s + (r.points_earned ?? 0), 0);
-      if ((u.total_points ?? 0) === total) continue;
-      const { error } = await supabaseAdmin
-        .from("registered_users")
-        .update({ total_points: total })
-        .eq("employee_id", u.employee_id);
-      if (!error) usersRefreshed++;
-    }
+    const { data: refresh, error: refreshErr } = await supabaseAdmin.rpc("refresh_scoring_totals_rewards", {
+      _match_ids: undefined,
+    });
+    if (refreshErr) throw new Error(refreshErr.message);
+    const predictionsUpdated = Number((refresh as any)?.predictions_changed ?? 0);
+    const usersRefreshed = Number((refresh as any)?.users_refreshed ?? 0);
 
     // 3. Log the recalculation as a sync entry for the activity feed.
     await supabaseAdmin.from("sync_logs").insert({
@@ -147,14 +102,7 @@ export const recalculateLeaderboard = createServerFn({ method: "POST" })
       users_refreshed: usersRefreshed,
     });
 
-    // Rebuild rewards + badges so daily/weekly/monthly/season are up to date.
-    try {
-      await supabaseAdmin.rpc("recalculate_rewards_and_badges");
-    } catch (err) {
-      console.error("[admin] rewards recompute failed:", err);
-    }
-
-    return { predictionsUpdated, usersRefreshed, totalUsers: users?.length ?? 0 };
+    return { predictionsUpdated, usersRefreshed, totalUsers: null };
   });
 
 /* ------------------------------------------------------------------ */
@@ -182,39 +130,21 @@ export const completeMatchManually = createServerFn({ method: "POST" })
       .eq("id", data.matchId);
     if (error) throw new Error(error.message);
 
-    // Score every prediction for this match.
-    const { data: preds } = await supabaseAdmin
-      .from("predictions")
-      .select("id, user_id, winner, predicted_home_score, predicted_away_score, points_earned")
-      .eq("match_id", data.matchId);
-
-    const affectedUsers = new Set<string>();
-    for (const p of preds ?? []) {
-      const earned = computePoints(p, { home_score: data.homeScore, away_score: data.awayScore });
-      affectedUsers.add(p.user_id);
-      if ((p.points_earned ?? 0) === earned) continue;
-      await supabaseAdmin.from("predictions").update({ points_earned: earned }).eq("id", p.id);
-    }
-    for (const userId of affectedUsers) {
-      const { data: rows } = await supabaseAdmin
-        .from("predictions")
-        .select("points_earned")
-        .eq("user_id", userId);
-      const total = (rows ?? []).reduce((s, r) => s + (r.points_earned ?? 0), 0);
-      await supabaseAdmin
-        .from("registered_users")
-        .update({ total_points: total })
-        .eq("employee_id", userId);
-    }
+    const { data: refresh, error: refreshErr } = await supabaseAdmin.rpc("refresh_scoring_totals_rewards", {
+      _match_ids: [data.matchId],
+    });
+    if (refreshErr) throw new Error(refreshErr.message);
+    const predictionsUpdated = Number((refresh as any)?.predictions_changed ?? 0);
+    const usersRefreshed = Number((refresh as any)?.users_refreshed ?? 0);
 
     await supabaseAdmin.from("sync_logs").insert({
       source: "manual-complete",
       status: "success",
       updated: 1,
-      users_refreshed: affectedUsers.size,
+      predictions_scored: predictionsUpdated,
+      users_refreshed: usersRefreshed,
     });
-    try { await supabaseAdmin.rpc("recalculate_rewards_and_badges"); } catch {}
-    return { ok: true, usersRefreshed: affectedUsers.size };
+    return { ok: true, usersRefreshed };
   });
 
 /* ------------------------------------------------------------------ */
@@ -242,10 +172,19 @@ export const updateMatchScores = createServerFn({ method: "POST" })
       .eq("id", data.matchId);
     if (error) throw new Error(error.message);
 
+    const { data: refresh, error: refreshErr } = await supabaseAdmin.rpc("refresh_scoring_totals_rewards", {
+      _match_ids: [data.matchId],
+    });
+    if (refreshErr) throw new Error(refreshErr.message);
+    const predictionsUpdated = Number((refresh as any)?.predictions_changed ?? 0);
+    const usersRefreshed = Number((refresh as any)?.users_refreshed ?? 0);
+
     await supabaseAdmin.from("sync_logs").insert({
       source: "manual-score-edit",
       status: "success",
       updated: 1,
+      predictions_scored: predictionsUpdated,
+      users_refreshed: usersRefreshed,
     });
     return { ok: true };
   });
