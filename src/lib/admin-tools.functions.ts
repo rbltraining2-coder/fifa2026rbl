@@ -88,7 +88,7 @@ export const recalculateLeaderboard = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: refresh, error: refreshErr } = await supabaseAdmin.rpc("refresh_scoring_totals_rewards", {
-      _match_ids: null,
+      _match_ids: undefined,
     });
     if (refreshErr) throw new Error(refreshErr.message);
     const predictionsUpdated = Number((refresh as any)?.predictions_changed ?? 0);
