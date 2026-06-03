@@ -166,10 +166,10 @@ function LeaderboardPage() {
 
       <div className="glossy-card p-1 inline-flex gap-1 w-full">
         <button
-          onClick={() => { setTab("standings"); setSelectedMatch(null); }}
-          className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${tab === "standings" ? "bg-white/10 text-white shadow-inner" : "text-muted-foreground hover:text-white"}`}
+          onClick={() => { setTab("overall"); setSelectedMatch(null); }}
+          className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${tab === "overall" ? "bg-white/10 text-white shadow-inner" : "text-muted-foreground hover:text-white"}`}
         >
-          <Trophy size={14} className="inline mr-1.5 -mt-0.5" /> Standings
+          <Trophy size={14} className="inline mr-1.5 -mt-0.5" /> Overall
         </button>
         <button
           onClick={() => setTab("history")}
@@ -252,7 +252,7 @@ function LeaderboardPage() {
       </>
       )}
 
-      {tab === "standings" && me && (
+      {tab === "overall" && me && (
         <div className="fixed bottom-[88px] inset-x-0 z-30 px-4">
           <div
             className="mx-auto max-w-2xl glossy-card p-3 flex items-center gap-3 rank-mine"
@@ -359,13 +359,12 @@ function MatchHistoryDetail({
   onBack: () => void;
   currentUserId: string | undefined;
 }) {
-  const { data: stats } = useUserRankingStats();
   const { data: rawData, isLoading } = useQuery({
     queryKey: ["leaderboard", "history", "match", match.id],
     queryFn: async () => {
       const { data: preds, error: pErr } = await supabase
         .from("predictions")
-        .select("id, user_id, predicted_home_score, predicted_away_score, winner, points_earned")
+        .select("id, user_id, predicted_home_score, predicted_away_score, winner, points_earned, created_at")
         .eq("match_id", match.id);
       if (pErr) throw pErr;
       const rows = (preds ?? []) as MatchPredictionRow[];
@@ -380,6 +379,11 @@ function MatchHistoryDetail({
       return rows.map((r) => ({ ...r, name: nameMap.get(r.user_id) ?? r.user_id }));
     },
   });
+
+  const stats = useMemo(
+    () => buildUserStatMap(rawData ?? [], (r) => r.user_id, (r) => r.points_earned ?? 0, (r) => r.created_at),
+    [rawData],
+  );
 
   const data = sortAndRank(
     rawData ?? [],
