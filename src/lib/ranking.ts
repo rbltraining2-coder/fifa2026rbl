@@ -8,15 +8,43 @@ import { supabase } from "@/integrations/supabase/client";
  *
  * Primary order:    total points DESC
  * Tiebreakers:      1) exact-score predictions DESC
- *                   2) earliest first prediction submission ASC
- *                   3) name (alphabetical) ASC
+ *                   2) correct-winner predictions DESC
+ *                   3) earliest first prediction submission ASC
+ *                   4) name (alphabetical) ASC
  *
  * Rank assignment uses competition ranking: equal points share the same rank
  * and the next distinct score skips ahead (1, 2, 2, 4 …).
  */
 
-export type UserStat = { exactCount: number; firstAt: string };
+export type UserStat = { exactCount: number; winnerCount: number; firstAt: string };
 export type UserStatMap = Map<string, UserStat>;
+
+export function buildUserStatMap<T>(
+  rows: T[],
+  getUserId: (r: T) => string,
+  getPoints: (r: T) => number,
+  getCreatedAt: (r: T) => string,
+): UserStatMap {
+  const map: UserStatMap = new Map();
+  for (const row of rows) {
+    const userId = getUserId(row);
+    const points = getPoints(row);
+    const createdAt = getCreatedAt(row);
+    const cur = map.get(userId);
+    if (!cur) {
+      map.set(userId, {
+        exactCount: points === 3 ? 1 : 0,
+        winnerCount: points === 1 ? 1 : 0,
+        firstAt: createdAt,
+      });
+    } else {
+      if (points === 3) cur.exactCount += 1;
+      if (points === 1) cur.winnerCount += 1;
+      if (createdAt < cur.firstAt) cur.firstAt = createdAt;
+    }
+  }
+  return map;
+}
 
 /** Fetch per-user tiebreaker stats from the predictions table. */
 export function useUserRankingStats() {
