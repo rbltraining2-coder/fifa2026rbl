@@ -6,7 +6,7 @@ import { Crown, Trophy, Medal, History as HistoryIcon, ChevronLeft } from "lucid
 import { useState } from "react";
 import TeamFlag from "@/components/TeamFlag";
 import { formatIstDateTime, IST_LABEL } from "@/lib/ist";
-import { useUserRankingStats, sortAndRank } from "@/lib/ranking";
+import { buildUserStatMap, sortAndRank } from "@/lib/ranking";
 
 export const Route = createFileRoute("/_app/leaderboard")({
   head: () => ({
@@ -22,7 +22,18 @@ export const Route = createFileRoute("/_app/leaderboard")({
   component: LeaderboardPage,
 });
 
-type Row = { id: string; employee_id: string; name: string; avatar_url: string | null; total_points: number };
+type Row = {
+  id: string;
+  employee_id: string;
+  name: string;
+  avatar_url: string | null;
+  total_points: number;
+  exact_hits: number;
+  winner_hits: number;
+  played: number;
+  accuracy: number;
+  first_prediction_at: string;
+};
 
 type CompletedMatch = {
   id: string;
@@ -42,6 +53,15 @@ type MatchPredictionRow = {
   predicted_away_score: number | null;
   winner: string | null;
   points_earned: number;
+  created_at: string;
+};
+
+type PredictionAggregateRow = {
+  id: string;
+  user_id: string;
+  match_id: string;
+  points_earned: number;
+  created_at: string;
 };
 
 function LeaderboardPage() {
