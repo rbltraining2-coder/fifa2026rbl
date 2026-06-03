@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Crown, Trophy, Medal, History as HistoryIcon, ChevronLeft } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import TeamFlag from "@/components/TeamFlag";
 import { formatIstDateTime, IST_LABEL } from "@/lib/ist";
 import { buildUserStatMap, sortAndRank } from "@/lib/ranking";
@@ -66,28 +66,91 @@ type PredictionAggregateRow = {
 
 function LeaderboardPage() {
   const { user } = useAuth();
-  const [tab, setTab] = useState<"standings" | "history">("standings");
+  const [tab, setTab] = useState<"overall" | "history">("overall");
   const [selectedMatch, setSelectedMatch] = useState<CompletedMatch | null>(null);
 
-  const { data: stats } = useUserRankingStats();
-  const { data: rawRows, isLoading } = useQuery({
-    queryKey: ["leaderboard"],
+  const { data: leaderboardData, isLoading } = useQuery({
+    queryKey: ["leaderboard", "overall-completed-aggregate"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const [{ data: matches, error: mErr }, { data: users, error: uErr }] = await Promise.all([
+        supabase
+          .from("matches")
+          .select("id")
+          .eq("status", "completed")
+          .not("home_score", "is", null)
+          .not("away_score", "is", null)
+          .limit(1000),
+        supabase
         .from("registered_users")
         .select("id, employee_id, name, avatar_url, total_points")
-        .limit(500);
-      if (error) throw error;
-      return (data ?? []) as Row[];
+          .limit(500),
+      ]);
+      if (mErr) throw mErr;
+      if (uErr) throw uErr;
+
+      const completedIds = new Set((matches ?? []).map((m) => m.id as string));
+      const preds: PredictionAggregateRow[] = [];
+      const pageSize = 1000;
+      for (let from = 0; ; from += pageSize) {
+        const { data, error } = await supabase
+          .from("predictions")
+          .select("id, user_id, match_id, points_earned, created_at")
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        preds.push(...((data ?? []) as PredictionAggregateRow[]));
+        if ((data ?? []).length < pageSize) break;
+      }
+
+      const scoredPreds = preds.filter((p) => completedIds.has(p.match_id));
+      const statMap = buildUserStatMap(scoredPreds, (p) => p.user_id, (p) => p.points_earned ?? 0, (p) => p.created_at);
+      const aggregates = new Map<string, Pick<Row, "total_points" | "exact_hits" | "winner_hits" | "played" | "accuracy" | "first_prediction_at">>();
+      for (const p of scoredPreds) {
+        const cur = aggregates.get(p.user_id) ?? {
+          total_points: 0,
+          exact_hits: 0,
+          winner_hits: 0,
+          played: 0,
+          accuracy: 0,
+          first_prediction_at: p.created_at,
+        };
+        cur.total_points += p.points_earned ?? 0;
+        cur.exact_hits += p.points_earned === 3 ? 1 : 0;
+        cur.winner_hits += p.points_earned === 1 ? 1 : 0;
+        cur.played += 1;
+        if (p.created_at < cur.first_prediction_at) cur.first_prediction_at = p.created_at;
+        aggregates.set(p.user_id, cur);
+      }
+
+      const rows = ((users ?? []) as Pick<Row, "id" | "employee_id" | "name" | "avatar_url" | "total_points">[]).map((u) => {
+        const a = aggregates.get(u.employee_id) ?? {
+          total_points: 0,
+          exact_hits: 0,
+          winner_hits: 0,
+          played: 0,
+          accuracy: 0,
+          first_prediction_at: "\uffff",
+        };
+        const correct = a.exact_hits + a.winner_hits;
+        return {
+          ...u,
+          total_points: a.total_points,
+          exact_hits: a.exact_hits,
+          winner_hits: a.winner_hits,
+          played: a.played,
+          accuracy: a.played > 0 ? Math.round((correct / a.played) * 100) : 0,
+          first_prediction_at: a.first_prediction_at,
+        } as Row;
+      });
+      return { rows, statMap };
     },
   });
 
   const rows = sortAndRank(
-    rawRows ?? [],
+    leaderboardData?.rows ?? [],
     (r) => r.employee_id,
     (r) => r.name || r.employee_id,
     (r) => r.total_points ?? 0,
-    stats,
+    leaderboardData?.statMap,
   );
   const top3 = rows.slice(0, 3);
   const rest = rows.slice(3);
