@@ -67,10 +67,12 @@ export function useUserRankingStats() {
           if (!cur) {
             map.set(p.user_id, {
               exactCount: p.points_earned === 3 ? 1 : 0,
+              winnerCount: p.points_earned === 1 ? 1 : 0,
               firstAt: p.created_at,
             });
           } else {
             if (p.points_earned === 3) cur.exactCount += 1;
+            if (p.points_earned === 1) cur.winnerCount += 1;
             if (p.created_at < cur.firstAt) cur.firstAt = p.created_at;
           }
         }
@@ -93,6 +95,9 @@ export function compareTiebreakers(
   const ae = sa?.exactCount ?? 0;
   const be = sb?.exactCount ?? 0;
   if (be !== ae) return be - ae;
+  const aw = sa?.winnerCount ?? 0;
+  const bw = sb?.winnerCount ?? 0;
+  if (bw !== aw) return bw - aw;
   const af = sa?.firstAt ?? "\uffff";
   const bf = sb?.firstAt ?? "\uffff";
   if (af !== bf) return af < bf ? -1 : 1;
