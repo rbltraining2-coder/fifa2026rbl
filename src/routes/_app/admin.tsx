@@ -37,8 +37,8 @@ const CSV_TEMPLATE =
   "France,Germany,2026-06-11T21:00:00Z,Group Stage\n";
 
 const USERS_CSV_TEMPLATE =
-  "employee_id,date_of_birth,name\n" +
-  "99999999,01/01/1990,John Doe\n";
+  "employee_id,date_of_birth,name,brand_name\n" +
+  "99999999,01/01/1990,John Doe,GAS\n";
 
 export const Route = createFileRoute("/_app/admin")({
   head: () => ({ meta: [{ title: "Admin Dashboard — Goal Gurus" }] }),
@@ -95,7 +95,7 @@ function AdminPage() {
   const [userBusy, setUserBusy] = useState(false);
   const [userDragOver, setUserDragOver] = useState(false);
   const userInputRef = useRef<HTMLInputElement>(null);
-  const [manual, setManual] = useState({ employee_id: "", name: "", date_of_birth: "" });
+  const [manual, setManual] = useState({ employee_id: "", name: "", date_of_birth: "", brand_name: "" });
   const [adding, setAdding] = useState(false);
   const [manualMatch, setManualMatch] = useState({
     home_team: "",
@@ -267,6 +267,7 @@ function AdminPage() {
             employee_id: get("employee_id", 0),
             date_of_birth: get("date_of_birth", 1),
             name: get("name", 2),
+            brand_name: get("brand_name", 3) || null,
           };
         })
         .filter((e) => e.employee_id && e.date_of_birth && e.name);
@@ -570,7 +571,7 @@ function AdminPage() {
               <UserPlus size={16} className="text-[var(--primary)]" />
               <h3 className="text-sm font-bold uppercase tracking-wider">Add Single Employee</h3>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <input
                 value={manual.employee_id}
                 onChange={(e) => setManual((m) => ({ ...m, employee_id: e.target.value }))}
@@ -589,6 +590,19 @@ function AdminPage() {
                 placeholder="DOB (DD/MM/YYYY)"
                 className="rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[var(--primary)] outline-none"
               />
+              <input
+                value={manual.brand_name}
+                onChange={(e) => setManual((m) => ({ ...m, brand_name: e.target.value }))}
+                placeholder="Brand Name (e.g. GAS)"
+                list="brand-options"
+                className="rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[var(--primary)] outline-none"
+              />
+              <datalist id="brand-options">
+                <option value="GAS" />
+                <option value="Scotch & Soda" />
+                <option value="GANT" />
+                <option value="Superdry" />
+              </datalist>
             </div>
             <button
               type="button"
@@ -601,10 +615,11 @@ function AdminPage() {
                     data: {
                       adminEmployeeId: profile.employee_id,
                       ...manual,
+                      brand_name: manual.brand_name.trim() || null,
                     },
                   });
                   toast.success(`Added ${manual.name} to the master roster.`);
-                  setManual({ employee_id: "", name: "", date_of_birth: "" });
+                  setManual({ employee_id: "", name: "", date_of_birth: "", brand_name: "" });
                   await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
                 } catch (err) {
                   toast.error(err instanceof Error ? err.message : "Add failed");
@@ -659,7 +674,7 @@ function AdminPage() {
               {userBusy ? "Importing…" : "Upload Master Roster (CSV Format)"}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Columns: employee_id, date_of_birth (DD/MM/YYYY), name.
+              Columns: employee_id, date_of_birth (DD/MM/YYYY), name, brand_name (optional).
             </p>
             <input
               ref={userInputRef}
@@ -818,7 +833,7 @@ function UserDirectory({
   setPage,
   onDelete,
 }: {
-  users: { employee_id: string; name: string; date_of_birth: string; registered: boolean }[];
+  users: { employee_id: string; name: string; date_of_birth: string; brand_name: string | null; registered: boolean }[];
   loading: boolean;
   search: string;
   page: number;
@@ -832,7 +847,8 @@ function UserDirectory({
     return users.filter(
       (u) =>
         u.name.toLowerCase().includes(q) ||
-        u.employee_id.toLowerCase().includes(q),
+        u.employee_id.toLowerCase().includes(q) ||
+        (u.brand_name ?? "").toLowerCase().includes(q),
     );
   }, [users, search]);
 
@@ -851,6 +867,7 @@ function UserDirectory({
             <tr>
               <th className="text-left px-3 py-2">Employee ID</th>
               <th className="text-left px-3 py-2">Name</th>
+              <th className="text-left px-3 py-2">Brand</th>
               <th className="text-left px-3 py-2">DOB</th>
               <th className="text-left px-3 py-2">Status</th>
               <th className="text-right px-3 py-2">Action</th>
@@ -858,12 +875,13 @@ function UserDirectory({
           </thead>
           <tbody>
             {pageRows.length === 0 && (
-              <tr><td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">No matching users.</td></tr>
+              <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">No matching users.</td></tr>
             )}
             {pageRows.map((u) => (
               <tr key={u.employee_id} className="border-t border-white/5">
                 <td className="px-3 py-2 font-mono">{u.employee_id}</td>
                 <td className="px-3 py-2">{u.name}</td>
+                <td className="px-3 py-2">{u.brand_name || <span className="text-muted-foreground italic">Not Assigned</span>}</td>
                 <td className="px-3 py-2">{u.date_of_birth}</td>
                 <td className="px-3 py-2">
                   <span

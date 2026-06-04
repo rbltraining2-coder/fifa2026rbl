@@ -51,7 +51,7 @@ export const verifyEligibility = createServerFn({ method: "POST" })
 
     const { data: emp, error } = await supabaseAdmin
       .from("eligible_employees")
-      .select("employee_id, name, date_of_birth")
+      .select("employee_id, name, date_of_birth, brand_name")
       .eq("employee_id", code)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -59,7 +59,7 @@ export const verifyEligibility = createServerFn({ method: "POST" })
       throw new Error("Credentials not found in corporate roster. Please contact admin.");
     }
 
-    return { employeeId: emp.employee_id, name: emp.name };
+    return { employeeId: emp.employee_id, name: emp.name, brand_name: emp.brand_name ?? null };
   });
 
 // Step 2 of register: insert directly into registered_users (no Supabase auth).
@@ -75,7 +75,7 @@ export const completeRegistration = createServerFn({ method: "POST" })
 
     const { data: emp } = await supabaseAdmin
       .from("eligible_employees")
-      .select("employee_id, name, date_of_birth")
+      .select("employee_id, name, date_of_birth, brand_name")
       .eq("employee_id", code)
       .maybeSingle();
     if (!emp || normalizeDob(emp.date_of_birth) !== dob) {
@@ -95,9 +95,10 @@ export const completeRegistration = createServerFn({ method: "POST" })
         name: emp.name,
         date_of_birth: dob,
         avatar_url: data.avatarUrl ?? null,
+        brand_name: emp.brand_name ?? null,
         is_admin: code === "50161635",
       })
-      .select("id, employee_id, name, avatar_url, total_points, rank, is_admin")
+      .select("id, employee_id, name, avatar_url, total_points, rank, is_admin, brand_name")
       .single();
     if (insErr || !inserted) throw new Error(insErr?.message ?? "Registration failed");
 
@@ -115,7 +116,7 @@ export const loginWithEmployeeCode = createServerFn({ method: "POST" })
 
     const { data: reg } = await supabaseAdmin
       .from("registered_users")
-      .select("id, employee_id, name, avatar_url, total_points, rank, is_admin, date_of_birth")
+      .select("id, employee_id, name, avatar_url, total_points, rank, is_admin, date_of_birth, brand_name")
       .eq("employee_id", code)
       .maybeSingle();
     if (!reg || normalizeDob(reg.date_of_birth) !== dob) {
@@ -134,7 +135,7 @@ export const getProfileByEmployeeId = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: reg } = await supabaseAdmin
       .from("registered_users")
-      .select("id, employee_id, name, avatar_url, total_points, rank, is_admin")
+      .select("id, employee_id, name, avatar_url, total_points, rank, is_admin, brand_name")
       .eq("employee_id", data.employeeId.toUpperCase())
       .maybeSingle();
     return reg ?? null;
