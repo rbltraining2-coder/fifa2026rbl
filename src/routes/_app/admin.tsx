@@ -37,8 +37,8 @@ const CSV_TEMPLATE =
   "France,Germany,2026-06-11T21:00:00Z,Group Stage\n";
 
 const USERS_CSV_TEMPLATE =
-  "employee_id,date_of_birth,name\n" +
-  "99999999,01/01/1990,John Doe\n";
+  "employee_id,date_of_birth,name,brand_name\n" +
+  "99999999,01/01/1990,John Doe,GAS\n";
 
 export const Route = createFileRoute("/_app/admin")({
   head: () => ({ meta: [{ title: "Admin Dashboard — Goal Gurus" }] }),
@@ -95,7 +95,7 @@ function AdminPage() {
   const [userBusy, setUserBusy] = useState(false);
   const [userDragOver, setUserDragOver] = useState(false);
   const userInputRef = useRef<HTMLInputElement>(null);
-  const [manual, setManual] = useState({ employee_id: "", name: "", date_of_birth: "" });
+  const [manual, setManual] = useState({ employee_id: "", name: "", date_of_birth: "", brand_name: "" });
   const [adding, setAdding] = useState(false);
   const [manualMatch, setManualMatch] = useState({
     home_team: "",
@@ -267,6 +267,7 @@ function AdminPage() {
             employee_id: get("employee_id", 0),
             date_of_birth: get("date_of_birth", 1),
             name: get("name", 2),
+            brand_name: get("brand_name", 3) || null,
           };
         })
         .filter((e) => e.employee_id && e.date_of_birth && e.name);
