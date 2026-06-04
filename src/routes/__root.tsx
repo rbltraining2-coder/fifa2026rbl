@@ -80,6 +80,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:site_name", content: "Goal Gurus" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { property: "og:title", content: "RBL FIFA 2026 Prediction League" },
+      { name: "twitter:title", content: "RBL FIFA 2026 Prediction League" },
+      { name: "description", content: "RBL FIFA 2026 Predict and win Superdry merch" },
+      { property: "og:description", content: "RBL FIFA 2026 Predict and win Superdry merch" },
+      { name: "twitter:description", content: "RBL FIFA 2026 Predict and win Superdry merch" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/1Gjr7OcJQeYKP7ChANFgaUwIj582/social-images/social-1780581281174-Background_less_RBL_FIFA_logo.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/1Gjr7OcJQeYKP7ChANFgaUwIj582/social-images/social-1780581281174-Background_less_RBL_FIFA_logo.webp" },
     ],
     links: [
       {
