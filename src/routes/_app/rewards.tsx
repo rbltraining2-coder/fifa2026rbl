@@ -80,12 +80,12 @@ function RewardsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("registered_users")
-        .select("employee_id, name, avatar_url")
+        .select("employee_id, name, avatar_url, brand_name")
         .in("employee_id", allUserIds);
       if (error) throw error;
-      const m = new Map<string, { name: string; avatar_url: string | null }>();
+      const m = new Map<string, { name: string; avatar_url: string | null; brand_name: string | null }>();
       (data ?? []).forEach((u: any) =>
-        m.set(u.employee_id, { name: u.name || u.employee_id, avatar_url: u.avatar_url }),
+        m.set(u.employee_id, { name: u.name || u.employee_id, avatar_url: u.avatar_url, brand_name: u.brand_name ?? null }),
       );
       return m;
     },
@@ -231,7 +231,10 @@ function RewardsPage() {
                         <Crown size={18} className="text-yellow-300 shrink-0" />
                         <Avatar url={u?.avatar_url ?? null} fallback={u?.name ?? w.user_id} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-black truncate">{u?.name ?? w.user_id}</p>
+                          <p className="text-sm font-black truncate">
+                            {u?.name ?? w.user_id}
+                            <span className="font-normal text-muted-foreground"> | {u?.brand_name || "Not Assigned"}</span>
+                          </p>
                           <p className="text-[10px] text-muted-foreground">{w.user_id}</p>
                         </div>
                         <div className="text-right">
@@ -254,7 +257,10 @@ function RewardsPage() {
                         <span className="w-6 text-center text-xs font-black text-muted-foreground tabular-nums">#{r.rank}</span>
                         <Avatar url={u?.avatar_url ?? null} fallback={u?.name ?? r.user_id} small />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold truncate">{u?.name ?? r.user_id}</p>
+                          <p className="text-xs font-bold truncate">
+                            {u?.name ?? r.user_id}
+                            <span className="font-normal text-muted-foreground"> | {u?.brand_name || "Not Assigned"}</span>
+                          </p>
                         </div>
                         <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary-glow)" }}>
                           {r.total_points}
