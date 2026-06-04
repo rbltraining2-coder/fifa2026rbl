@@ -479,11 +479,11 @@ function MatchHistoryDetail({
       const ids = Array.from(new Set(rows.map((r) => r.user_id)));
       const { data: users, error: uErr } = await supabase
         .from("registered_users")
-        .select("employee_id, name")
+        .select("employee_id, name, brand_name")
         .in("employee_id", ids);
       if (uErr) throw uErr;
-      const nameMap = new Map((users ?? []).map((u) => [u.employee_id as string, (u.name as string) || (u.employee_id as string)]));
-      return rows.map((r) => ({ ...r, name: nameMap.get(r.user_id) ?? r.user_id }));
+      const nameMap = new Map((users ?? []).map((u) => [u.employee_id as string, { name: (u.name as string) || (u.employee_id as string), brand_name: (u.brand_name as string | null) ?? null }]));
+      return rows.map((r) => ({ ...r, name: nameMap.get(r.user_id)?.name ?? r.user_id, brand_name: nameMap.get(r.user_id)?.brand_name ?? null }));
     },
   });
 
@@ -550,10 +550,12 @@ function MatchHistoryDetail({
               >
                 <span className="w-8 text-center text-sm font-black text-muted-foreground tabular-nums">#{rank}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold truncate tracking-tight">{p.name}</p>
+                  <p className="text-sm font-bold truncate tracking-tight">
+                    {p.name}
+                    <span className="font-normal text-muted-foreground"> | {p.brand_name || "Not Assigned"}</span>
+                  </p>
                   <p className="text-[11px] text-muted-foreground">
-                    Pick: {p.predicted_home_score ?? "?"}–{p.predicted_away_score ?? "?"}
-                    {p.winner ? ` · ${p.winner}` : ""}
+                    Pick {p.predicted_home_score ?? "?"}–{p.predicted_away_score ?? "?"} · Actual {match.home_score ?? "—"}–{match.away_score ?? "—"}
                   </p>
                 </div>
                 <div className="flex flex-col items-end">
