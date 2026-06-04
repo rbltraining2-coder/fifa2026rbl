@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { Crown, Trophy, Medal, History as HistoryIcon, ChevronLeft } from "lucide-react";
+import { Crown, Trophy, Medal, History as HistoryIcon, ChevronLeft, ListOrdered, Users, BarChart3 } from "lucide-react";
 import { useMemo, useState } from "react";
 import TeamFlag from "@/components/TeamFlag";
 import { formatIstDateTime, IST_LABEL } from "@/lib/ist";
@@ -26,6 +26,7 @@ type Row = {
   id: string;
   employee_id: string;
   name: string;
+  brand_name: string | null;
   avatar_url: string | null;
   total_points: number;
   exact_hits: number;
@@ -66,7 +67,7 @@ type PredictionAggregateRow = {
 
 function LeaderboardPage() {
   const { user } = useAuth();
-  const [tab, setTab] = useState<"overall" | "history">("overall");
+  const [tab, setTab] = useState<"overall" | "matches" | "history">("overall");
   const [selectedMatch, setSelectedMatch] = useState<CompletedMatch | null>(null);
 
   const { data: leaderboardData, isLoading } = useQuery({
@@ -82,7 +83,7 @@ function LeaderboardPage() {
           .limit(1000),
         supabase
         .from("registered_users")
-        .select("id, employee_id, name, avatar_url, total_points")
+        .select("id, employee_id, name, avatar_url, total_points, brand_name")
           .limit(500),
       ]);
       if (mErr) throw mErr;
@@ -121,7 +122,7 @@ function LeaderboardPage() {
         aggregates.set(p.user_id, cur);
       }
 
-      const rows = ((users ?? []) as Pick<Row, "id" | "employee_id" | "name" | "avatar_url" | "total_points">[]).map((u) => {
+      const rows = ((users ?? []) as Pick<Row, "id" | "employee_id" | "name" | "avatar_url" | "total_points" | "brand_name">[]).map((u) => {
         const a = aggregates.get(u.employee_id) ?? {
           total_points: 0,
           exact_hits: 0,
@@ -141,7 +142,7 @@ function LeaderboardPage() {
           first_prediction_at: a.first_prediction_at,
         } as Row;
       });
-      return { rows, statMap };
+      return { rows, statMap, totalPredictions: preds.length, completedCount: completedIds.size };
     },
   });
 
@@ -156,6 +157,7 @@ function LeaderboardPage() {
   const rest = rows.slice(3);
   const myIdx = rows.findIndex((r) => r.id === user?.id);
   const me = myIdx >= 0 ? rows[myIdx] : null;
+  const leader = rows[0] ?? null;
 
   return (
     <div className="space-y-5 pb-24">
@@ -164,22 +166,42 @@ function LeaderboardPage() {
         <h1 className="text-xl font-black tracking-tight">Leaderboard</h1>
       </div>
 
+      {/* Summary cards */}
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+        <SummaryCard icon={<BarChart3 size={14} />} label="Matches Done" value={leaderboardData?.completedCount ?? 0} />
+        <SummaryCard icon={<Users size={14} />} label="Predictions" value={leaderboardData?.totalPredictions ?? 0} />
+        <SummaryCard icon={<Crown size={14} />} label="Leader" value={leader?.name?.split(" ")[0] || "—"} sub={leader ? `${leader.total_points} pts` : ""} />
+        <SummaryCard icon={<Medal size={14} />} label="Your Rank" value={me ? `#${me.rank}` : "—"} sub={me ? `${me.total_points} pts` : ""} />
+      </section>
+
       <div className="glossy-card p-1 inline-flex gap-1 w-full">
         <button
           onClick={() => { setTab("overall"); setSelectedMatch(null); }}
           className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${tab === "overall" ? "bg-white/10 text-white shadow-inner" : "text-muted-foreground hover:text-white"}`}
         >
-          <Trophy size={14} className="inline mr-1.5 -mt-0.5" /> Overall
+          <Trophy size={14} className="inline mr-1.5 -mt-0.5" /> Tournament Ranking
         </button>
         <button
-          onClick={() => setTab("history")}
+          onClick={() => { setTab("matches"); setSelectedMatch(null); }}
+          className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${tab === "matches" ? "bg-white/10 text-white shadow-inner" : "text-muted-foreground hover:text-white"}`}
+        >
+          <ListOrdered size={14} className="inline mr-1.5 -mt-0.5" /> Match Leaderboards
+        </button>
+        <button
+          onClick={() => { setTab("history"); setSelectedMatch(null); }}
           className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${tab === "history" ? "bg-white/10 text-white shadow-inner" : "text-muted-foreground hover:text-white"}`}
         >
-          <HistoryIcon size={14} className="inline mr-1.5 -mt-0.5" /> Past Matches
+          <HistoryIcon size={14} className="inline mr-1.5 -mt-0.5" /> Match History
         </button>
       </div>
 
-      {tab === "history" ? (
+      {tab === "matches" ? (
+        selectedMatch ? (
+          <MatchHistoryDetail match={selectedMatch} onBack={() => setSelectedMatch(null)} currentUserId={user?.employee_id} />
+        ) : (
+          <MatchLeaderboardList onSelect={setSelectedMatch} />
+        )
+      ) : tab === "history" ? (
         selectedMatch ? (
           <MatchHistoryDetail match={selectedMatch} onBack={() => setSelectedMatch(null)} currentUserId={user?.employee_id} />
         ) : (
@@ -229,7 +251,10 @@ function LeaderboardPage() {
               <span className="w-8 text-center text-sm font-black text-muted-foreground tabular-nums">#{rank}</span>
               <Avatar url={r.avatar_url} code={r.employee_id} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold truncate tracking-tight">{r.name || r.employee_id}</p>
+                <p className="text-sm font-bold truncate tracking-tight">
+                  {r.name || r.employee_id}
+                  <span className="font-normal text-muted-foreground"> | {r.brand_name || "Not Assigned"}</span>
+                </p>
                 <p className="text-[11px] text-muted-foreground">{r.employee_id}</p>
               </div>
               <div className="flex flex-col items-end">
