@@ -309,6 +309,88 @@ function Avatar({ url, code }: { url: string | null; code: string }) {
   );
 }
 
+function SummaryCard({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string | number; sub?: string }) {
+  return (
+    <div className="glossy-card px-3 py-2.5">
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+        <span className="text-[color:var(--primary-glow)]">{icon}</span>{label}
+      </div>
+      <p className="text-base font-black mt-0.5 truncate" style={{ color: "var(--primary-glow)" }}>{value}</p>
+      {sub && <p className="text-[10px] text-muted-foreground -mt-0.5">{sub}</p>}
+    </div>
+  );
+}
+
+function MatchLeaderboardList({ onSelect }: { onSelect: (m: CompletedMatch) => void }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["leaderboard", "match-leaderboards", "list"],
+    queryFn: async () => {
+      const { data: matches, error } = await supabase
+        .from("matches")
+        .select("id, home_team, away_team, home_flag, away_flag, home_score, away_score, match_time")
+        .eq("status", "completed")
+        .order("match_time", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      const list = (matches ?? []) as CompletedMatch[];
+      const ids = list.map((m) => m.id);
+      if (ids.length === 0) return [] as (CompletedMatch & { predCount: number })[];
+      const { data: preds, error: pErr } = await supabase
+        .from("predictions")
+        .select("match_id")
+        .in("match_id", ids);
+      if (pErr) throw pErr;
+      const counts = new Map<string, number>();
+      for (const p of preds ?? []) counts.set(p.match_id as string, (counts.get(p.match_id as string) ?? 0) + 1);
+      return list.map((m) => ({ ...m, predCount: counts.get(m.id) ?? 0 }));
+    },
+  });
+
+  if (isLoading) {
+    return <ul className="space-y-2">{[0,1,2].map((i) => <li key={i} className="skeleton h-[84px]" />)}</ul>;
+  }
+  const matches = data ?? [];
+  if (matches.length === 0) {
+    return (
+      <div className="glossy-card p-8 text-center">
+        <ListOrdered size={28} className="mx-auto text-muted-foreground/60 mb-2" />
+        <p className="text-sm font-semibold">No completed matches yet</p>
+        <p className="text-[11px] text-muted-foreground mt-1">Per-match rankings appear here as fixtures finish.</p>
+      </div>
+    );
+  }
+  return (
+    <ul className="space-y-2">
+      {matches.map((m) => (
+        <li
+          key={m.id}
+          onClick={() => onSelect(m)}
+          className="glossy-card px-4 py-3 flex items-center gap-3 cursor-pointer transition-transform duration-200 hover:-translate-y-0.5"
+        >
+          <div className="flex -space-x-2">
+            <TeamFlag team={m.home_team} size={32} className="ring-2 ring-[color:var(--card)]" />
+            <TeamFlag team={m.away_team} size={32} className="ring-2 ring-[color:var(--card)]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold truncate">
+              {m.home_team} <span className="text-muted-foreground">vs</span> {m.away_team}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {formatIstDateTime(m.match_time)} <span className="opacity-70">{IST_LABEL}</span> · {m.predCount} prediction{m.predCount === 1 ? "" : "s"}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="score-display" style={{ fontSize: "1.3rem" }}>
+              {m.home_score ?? "—"}<span className="text-muted-foreground mx-1">-</span>{m.away_score ?? "—"}
+            </p>
+            <p className="text-[9px] uppercase tracking-widest text-[color:var(--primary-glow)] font-bold mt-0.5">View Ranks →</p>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function MatchHistoryList({ onSelect }: { onSelect: (m: CompletedMatch) => void }) {
   const { data, isLoading } = useQuery({
     queryKey: ["leaderboard", "history", "matches"],
