@@ -105,6 +105,13 @@ function ProfilePage() {
         </button>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
         <p className="mt-3 text-xl font-black">{profile?.name}</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {profile?.employee_id}
+          {" · "}
+          <span className={profile?.brand_name ? "text-[color:var(--primary-glow)] font-semibold" : "italic"}>
+            {profile?.brand_name || "Brand Not Assigned"}
+          </span>
+        </p>
       </section>
 
       <section className="grid grid-cols-3 gap-3">
