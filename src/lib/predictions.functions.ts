@@ -34,11 +34,22 @@ export const savePrediction = createServerFn({ method: "POST" })
     if (kickoff - now < 30 * 60 * 1000) throw new Error("Predictions are locked");
     if (kickoff - now > 24 * 60 * 60 * 1000) throw new Error("Prediction window not open yet");
 
+    // Authoritative winner is derived from predicted scores so the stored
+    // `winner` column can never disagree with `predicted_home_score` /
+    // `predicted_away_score`. The scoring engine treats predicted scores as
+    // the source of truth — keep `winner` consistent here too.
+    const derivedWinner =
+      data.homeScore > data.awayScore
+        ? "home"
+        : data.homeScore < data.awayScore
+          ? "away"
+          : "draw";
+
     const { error } = await supabaseAdmin.from("predictions").upsert(
       {
         user_id: data.employeeId.toUpperCase(),
         match_id: data.matchId,
-        winner: data.winner,
+        winner: derivedWinner,
         predicted_home_score: data.homeScore,
         predicted_away_score: data.awayScore,
       },
