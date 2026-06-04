@@ -16,18 +16,21 @@ export type Database = {
     Tables: {
       eligible_employees: {
         Row: {
+          brand_name: string | null
           created_at: string
           date_of_birth: string
           employee_id: string
           name: string
         }
         Insert: {
+          brand_name?: string | null
           created_at?: string
           date_of_birth: string
           employee_id: string
           name: string
         }
         Update: {
+          brand_name?: string | null
           created_at?: string
           date_of_birth?: string
           employee_id?: string
@@ -176,6 +179,7 @@ export type Database = {
       registered_users: {
         Row: {
           avatar_url: string | null
+          brand_name: string | null
           created_at: string
           date_of_birth: string
           employee_id: string
@@ -188,6 +192,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          brand_name?: string | null
           created_at?: string
           date_of_birth: string
           employee_id: string
@@ -200,6 +205,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          brand_name?: string | null
           created_at?: string
           date_of_birth?: string
           employee_id?: string
