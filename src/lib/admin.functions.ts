@@ -109,6 +109,7 @@ const employeeSchema = z.object({
   employee_id: z.string().trim().min(1).max(32).regex(/^[A-Za-z0-9_-]+$/),
   date_of_birth: z.string().trim().min(1).max(32),
   name: z.string().trim().min(1).max(128),
+  brand_name: z.string().trim().max(64).optional().nullable(),
 });
 
 const employeesPayloadSchema = z.object({
@@ -134,6 +135,7 @@ export const importEligibleEmployees = createServerFn({ method: "POST" })
       employee_id: e.employee_id.toUpperCase(),
       date_of_birth: e.date_of_birth,
       name: e.name,
+      brand_name: e.brand_name?.trim() ? e.brand_name.trim() : null,
     }));
 
     // Dedupe by employee_id to avoid unique-constraint clashes inside one batch.
@@ -154,6 +156,14 @@ export const importEligibleEmployees = createServerFn({ method: "POST" })
       .from("eligible_employees")
       .insert(deduped, { count: "exact" });
     if (insErr) throw new Error(insErr.message);
+
+    // Sync brand_name onto already-registered users so existing rosters update too.
+    for (const r of deduped) {
+      await supabaseAdmin
+        .from("registered_users")
+        .update({ brand_name: r.brand_name })
+        .eq("employee_id", r.employee_id);
+    }
     return { inserted: count ?? deduped.length };
   });
 
@@ -174,6 +184,7 @@ const addEmployeeSchema = z.object({
   employee_id: z.string().trim().min(1).max(32).regex(/^[A-Za-z0-9_-]+$/),
   date_of_birth: z.string().trim().min(1).max(32),
   name: z.string().trim().min(1).max(128),
+  brand_name: z.string().trim().max(64).optional().nullable(),
 });
 
 export const addEligibleEmployee = createServerFn({ method: "POST" })
@@ -185,11 +196,16 @@ export const addEligibleEmployee = createServerFn({ method: "POST" })
       employee_id: data.employee_id.toUpperCase(),
       date_of_birth: data.date_of_birth,
       name: data.name,
+      brand_name: data.brand_name?.trim() ? data.brand_name.trim() : null,
     };
     // Remove any existing row with the same id, then insert fresh.
     await supabaseAdmin.from("eligible_employees").delete().eq("employee_id", row.employee_id);
     const { error } = await supabaseAdmin.from("eligible_employees").insert(row);
     if (error) throw new Error(error.message);
+    await supabaseAdmin
+      .from("registered_users")
+      .update({ brand_name: row.brand_name })
+      .eq("employee_id", row.employee_id);
     return { ok: true, employee_id: row.employee_id };
   });
 
@@ -201,6 +217,7 @@ export type AdminUserRow = {
   employee_id: string;
   name: string;
   date_of_birth: string;
+  brand_name: string | null;
   registered: boolean;
 };
 
@@ -210,20 +227,21 @@ export const listAllUsers = createServerFn({ method: "POST" })
     await assertAdmin(data.adminEmployeeId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [eligible, registered] = await Promise.all([
-      supabaseAdmin.from("eligible_employees").select("employee_id, name, date_of_birth"),
-      supabaseAdmin.from("registered_users").select("employee_id, name, date_of_birth"),
+      supabaseAdmin.from("eligible_employees").select("employee_id, name, date_of_birth, brand_name"),
+      supabaseAdmin.from("registered_users").select("employee_id, name, date_of_birth, brand_name"),
     ]);
     if (eligible.error) throw new Error(eligible.error.message);
     if (registered.error) throw new Error(registered.error.message);
 
-    const regIds = new Set((registered.data ?? []).map((r) => r.employee_id));
+    const regMap = new Map((registered.data ?? []).map((r) => [r.employee_id, r]));
     const map = new Map<string, AdminUserRow>();
     for (const r of eligible.data ?? []) {
       map.set(r.employee_id, {
         employee_id: r.employee_id,
         name: r.name,
         date_of_birth: r.date_of_birth,
-        registered: regIds.has(r.employee_id),
+        brand_name: r.brand_name ?? regMap.get(r.employee_id)?.brand_name ?? null,
+        registered: regMap.has(r.employee_id),
       });
     }
     // Surface registered-only rows too (in case someone slipped into the roster).
@@ -233,6 +251,7 @@ export const listAllUsers = createServerFn({ method: "POST" })
           employee_id: r.employee_id,
           name: r.name,
           date_of_birth: r.date_of_birth,
+          brand_name: r.brand_name ?? null,
           registered: true,
         });
       }
