@@ -475,7 +475,7 @@ function MatchHistoryDetail({
         .eq("match_id", match.id);
       if (pErr) throw pErr;
       const rows = (preds ?? []) as MatchPredictionRow[];
-      if (rows.length === 0) return [] as (MatchPredictionRow & { name: string })[];
+      if (rows.length === 0) return [] as (MatchPredictionRow & { name: string; brand_name: string | null })[];
       const ids = Array.from(new Set(rows.map((r) => r.user_id)));
       const { data: users, error: uErr } = await supabase
         .from("registered_users")
