@@ -10,6 +10,7 @@ export type Profile = {
   total_points: number;
   rank: number | null;
   is_admin?: boolean;
+  brand_name?: string | null;
 };
 
 const STORAGE_KEY = "current_user_id";
