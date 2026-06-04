@@ -571,7 +571,7 @@ function AdminPage() {
               <UserPlus size={16} className="text-[var(--primary)]" />
               <h3 className="text-sm font-bold uppercase tracking-wider">Add Single Employee</h3>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <input
                 value={manual.employee_id}
                 onChange={(e) => setManual((m) => ({ ...m, employee_id: e.target.value }))}
@@ -590,6 +590,19 @@ function AdminPage() {
                 placeholder="DOB (DD/MM/YYYY)"
                 className="rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[var(--primary)] outline-none"
               />
+              <input
+                value={manual.brand_name}
+                onChange={(e) => setManual((m) => ({ ...m, brand_name: e.target.value }))}
+                placeholder="Brand Name (e.g. GAS)"
+                list="brand-options"
+                className="rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[var(--primary)] outline-none"
+              />
+              <datalist id="brand-options">
+                <option value="GAS" />
+                <option value="Scotch & Soda" />
+                <option value="GANT" />
+                <option value="Superdry" />
+              </datalist>
             </div>
             <button
               type="button"
@@ -602,10 +615,11 @@ function AdminPage() {
                     data: {
                       adminEmployeeId: profile.employee_id,
                       ...manual,
+                      brand_name: manual.brand_name.trim() || null,
                     },
                   });
                   toast.success(`Added ${manual.name} to the master roster.`);
-                  setManual({ employee_id: "", name: "", date_of_birth: "" });
+                  setManual({ employee_id: "", name: "", date_of_birth: "", brand_name: "" });
                   await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
                 } catch (err) {
                   toast.error(err instanceof Error ? err.message : "Add failed");
@@ -660,7 +674,7 @@ function AdminPage() {
               {userBusy ? "Importing…" : "Upload Master Roster (CSV Format)"}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Columns: employee_id, date_of_birth (DD/MM/YYYY), name.
+              Columns: employee_id, date_of_birth (DD/MM/YYYY), name, brand_name (optional).
             </p>
             <input
               ref={userInputRef}
