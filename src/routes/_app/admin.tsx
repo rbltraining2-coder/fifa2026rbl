@@ -833,7 +833,7 @@ function UserDirectory({
   setPage,
   onDelete,
 }: {
-  users: { employee_id: string; name: string; date_of_birth: string; registered: boolean }[];
+  users: { employee_id: string; name: string; date_of_birth: string; brand_name: string | null; registered: boolean }[];
   loading: boolean;
   search: string;
   page: number;
@@ -847,7 +847,8 @@ function UserDirectory({
     return users.filter(
       (u) =>
         u.name.toLowerCase().includes(q) ||
-        u.employee_id.toLowerCase().includes(q),
+        u.employee_id.toLowerCase().includes(q) ||
+        (u.brand_name ?? "").toLowerCase().includes(q),
     );
   }, [users, search]);
 
@@ -866,6 +867,7 @@ function UserDirectory({
             <tr>
               <th className="text-left px-3 py-2">Employee ID</th>
               <th className="text-left px-3 py-2">Name</th>
+              <th className="text-left px-3 py-2">Brand</th>
               <th className="text-left px-3 py-2">DOB</th>
               <th className="text-left px-3 py-2">Status</th>
               <th className="text-right px-3 py-2">Action</th>
@@ -873,12 +875,13 @@ function UserDirectory({
           </thead>
           <tbody>
             {pageRows.length === 0 && (
-              <tr><td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">No matching users.</td></tr>
+              <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">No matching users.</td></tr>
             )}
             {pageRows.map((u) => (
               <tr key={u.employee_id} className="border-t border-white/5">
                 <td className="px-3 py-2 font-mono">{u.employee_id}</td>
                 <td className="px-3 py-2">{u.name}</td>
+                <td className="px-3 py-2">{u.brand_name || <span className="text-muted-foreground italic">Not Assigned</span>}</td>
                 <td className="px-3 py-2">{u.date_of_birth}</td>
                 <td className="px-3 py-2">
                   <span
