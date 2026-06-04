@@ -483,7 +483,7 @@ function MatchHistoryDetail({
         .in("employee_id", ids);
       if (uErr) throw uErr;
       const nameMap = new Map((users ?? []).map((u) => [u.employee_id as string, { name: (u.name as string) || (u.employee_id as string), brand_name: (u.brand_name as string | null) ?? null }]));
-      return rows.map((r) => ({ ...r, name: nameMap.get(r.user_id)?.name ?? r.user_id, brand_name: nameMap.get(r.user_id)?.brand_name ?? null }));
+      return rows.map((r) => ({ ...r, name: nameMap.get(r.user_id)?.name ?? r.user_id, brand_name: nameMap.get(r.user_id)?.brand_name ?? null })) as (MatchPredictionRow & { name: string; brand_name: string | null })[];
     },
   });
 
