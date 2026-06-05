@@ -122,6 +122,11 @@ export const loginWithEmployeeCode = createServerFn({ method: "POST" })
     if (!reg || normalizeDob(reg.date_of_birth) !== dob) {
       throw new Error("Profile not found. Please register first.");
     }
+    // Stamp last login (best-effort; ignore errors).
+    await supabaseAdmin
+      .from("registered_users")
+      .update({ last_login_at: new Date().toISOString() })
+      .eq("employee_id", code);
     const { date_of_birth: _dob, ...safe } = reg;
     return safe;
   });
