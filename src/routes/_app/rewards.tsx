@@ -7,6 +7,13 @@ import { Trophy, Calendar, CalendarDays, CalendarRange, Crown } from "lucide-rea
 import championBanner from "@/assets/champion-cup-banner.png";
 import { buildUserStatMap, sortAndRank } from "@/lib/ranking";
 
+const LABELS: Record<PeriodType, { winner: string; sub: string }> = {
+  daily:   { winner: "🏆 Match Winner",     sub: "🥈 Runner-Up" },
+  weekly:  { winner: "🥇 Weekly Champion",  sub: "🥈 Runner-Up" },
+  monthly: { winner: "🥇 Monthly Champion", sub: "🥈 Runner-Up" },
+  season:  { winner: "👑 Season Champion",  sub: "🥈 Runner-Up" },
+};
+
 export const Route = createFileRoute("/_app/rewards")({
   head: () => ({
     meta: [
@@ -44,6 +51,8 @@ type RewardPredictionRow = {
 
 type RewardMatchRow = { id: string; match_time: string };
 
+type MerchRow = { id: string; rank: number; name: string; image_url: string | null; active: boolean };
+
 const TABS: { id: PeriodType; label: string; icon: typeof Calendar }[] = [
   { id: "daily",   label: "Daily",   icon: Calendar },
   { id: "weekly",  label: "Weekly",  icon: CalendarDays },
@@ -54,6 +63,24 @@ const TABS: { id: PeriodType; label: string; icon: typeof Calendar }[] = [
 function RewardsPage() {
   const { user } = useAuth();
   const [tab, setTab] = useState<PeriodType>("weekly");
+
+  const { data: merch } = useQuery({
+    queryKey: ["season-merch"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("season_merchandise")
+        .select("id, rank, name, image_url, active")
+        .eq("active", true)
+        .order("rank", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as MerchRow[];
+    },
+  });
+  const merchByRank = useMemo(() => {
+    const m = new Map<number, MerchRow>();
+    (merch ?? []).forEach(r => { if (!m.has(r.rank)) m.set(r.rank, r); });
+    return m;
+  }, [merch]);
 
   const { data: rows, isLoading } = useQuery({
     queryKey: ["reward_winners", tab],
