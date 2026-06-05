@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { FeatureMatchCard, MatchCardSkeleton, type Match } from "@/components/MatchCard";
 import PredictionSheet from "@/components/PredictionSheet";
 import TeamFlag from "@/components/TeamFlag";
-import { Lock, CalendarDays, Sparkles } from "lucide-react";
+import { Lock, CalendarDays, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { getPredictionWindow } from "@/lib/predictionWindow";
 import { formatIstDateTime, IST_LABEL } from "@/lib/ist";
 import promoBanner from "@/assets/home-banner.png";
@@ -83,6 +83,7 @@ function HomePage() {
   return (
     <div className="space-y-6">
       <h1 className="sr-only">Match Predictions</h1>
+      <AnnouncementCarousel />
       <section
         aria-label="Goal Gurus FIFA 2026 promo"
         className="w-full rounded-2xl overflow-hidden"
