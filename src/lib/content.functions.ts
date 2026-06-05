@@ -8,7 +8,7 @@ async function assertAdmin(adminEmployeeId: string) {
     throw new Error("Forbidden: admin access required.");
   }
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: caller } = await supabaseAdmin
+  const { data: caller } = await (supabaseAdmin as any)
     .from("registered_users")
     .select("is_admin")
     .eq("employee_id", ADMIN_ID)
@@ -56,7 +56,7 @@ export const upsertMerchandise = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return { ok: true, id: data.id };
     }
-    const { data: ins, error } = await supabaseAdmin
+    const { data: ins, error } = await (supabaseAdmin as any)
       .from("season_merchandise").insert(row).select("id").single();
     if (error) throw new Error(error.message);
     return { ok: true, id: ins!.id };
@@ -77,7 +77,7 @@ export const listMerchandise = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     await assertAdmin(data.adminEmployeeId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await supabaseAdmin
+    const { data: rows, error } = await (supabaseAdmin as any)
       .from("season_merchandise").select("*").order("rank", { ascending: true });
     if (error) throw new Error(error.message);
     return { items: (rows ?? []) as Merchandise[] };
@@ -132,7 +132,7 @@ export const upsertAnnouncement = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return { ok: true, id: data.id };
     }
-    const { data: ins, error } = await supabaseAdmin
+    const { data: ins, error } = await (supabaseAdmin as any)
       .from("announcements").insert(row).select("id").single();
     if (error) throw new Error(error.message);
     return { ok: true, id: ins!.id };
@@ -153,7 +153,7 @@ export const listAnnouncementsAdmin = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     await assertAdmin(data.adminEmployeeId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await supabaseAdmin
+    const { data: rows, error } = await (supabaseAdmin as any)
       .from("announcements")
       .select("*")
       .order("sort_order", { ascending: true })
