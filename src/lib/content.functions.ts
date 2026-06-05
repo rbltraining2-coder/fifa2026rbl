@@ -52,7 +52,7 @@ export const upsertMerchandise = createServerFn({ method: "POST" })
       active: data.active,
     };
     if (data.id) {
-      const { error } = await supabaseAdmin.from("season_merchandise").update(row).eq("id", data.id);
+      const { error } = await (supabaseAdmin as any).from("season_merchandise").update(row).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true, id: data.id };
     }
@@ -67,7 +67,7 @@ export const deleteMerchandise = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     await assertAdmin(data.adminEmployeeId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("season_merchandise").delete().eq("id", data.id);
+    const { error } = await (supabaseAdmin as any).from("season_merchandise").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -128,7 +128,7 @@ export const upsertAnnouncement = createServerFn({ method: "POST" })
       sort_order: data.sort_order,
     };
     if (data.id) {
-      const { error } = await supabaseAdmin.from("announcements").update(row).eq("id", data.id);
+      const { error } = await (supabaseAdmin as any).from("announcements").update(row).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true, id: data.id };
     }
@@ -143,7 +143,7 @@ export const deleteAnnouncement = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     await assertAdmin(data.adminEmployeeId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("announcements").delete().eq("id", data.id);
+    const { error } = await (supabaseAdmin as any).from("announcements").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
