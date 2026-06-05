@@ -26,8 +26,18 @@ import {
   type AdminMatchRow,
   type SyncLogRow,
 } from "@/lib/admin-tools.functions";
-import { formatIstShort, IST_LABEL } from "@/lib/ist";
+import { formatIstShort, formatIstFull, IST_LABEL } from "@/lib/ist";
 import { istLocalInputToUtcIso } from "@/lib/ist";
+import {
+  upsertMerchandise,
+  deleteMerchandise,
+  listMerchandise,
+  upsertAnnouncement,
+  deleteAnnouncement,
+  listAnnouncementsAdmin,
+  type Merchandise,
+  type Announcement,
+} from "@/lib/content.functions";
 
 const ADMIN_EMPLOYEE_ID = "50161635";
 
@@ -91,7 +101,7 @@ function AdminPage() {
   const [wiping, setWiping] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [tab, setTab] = useState<"matches" | "users" | "tools" | "sync">("matches");
+  const [tab, setTab] = useState<"matches" | "users" | "tools" | "sync" | "rewards" | "content">("matches");
   const [userBusy, setUserBusy] = useState(false);
   const [userDragOver, setUserDragOver] = useState(false);
   const userInputRef = useRef<HTMLInputElement>(null);
@@ -298,8 +308,8 @@ function AdminPage() {
         </p>
       </header>
 
-      <div className="grid grid-cols-4 gap-1 p-1 rounded-xl bg-black/40 border border-white/10 max-w-2xl">
-        {(["matches", "users", "tools", "sync"] as const).map((t) => (
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 p-1 rounded-xl bg-black/40 border border-white/10 max-w-3xl">
+        {(["matches", "users", "rewards", "content", "tools", "sync"] as const).map((t) => (
           <button
             key={t}
             type="button"
@@ -312,11 +322,15 @@ function AdminPage() {
             }
           >
             {t === "matches"
-              ? "Match Schedule"
+              ? "Matches"
               : t === "users"
-              ? "User Management"
+              ? "Users"
+              : t === "rewards"
+              ? "Rewards"
+              : t === "content"
+              ? "Content"
               : t === "tools"
-              ? "Admin Tools"
+              ? "Tools"
               : "Auto-Sync"}
           </button>
         ))}
@@ -738,6 +752,8 @@ function AdminPage() {
 
       {tab === "sync" && <AutoSyncGuide />}
       {tab === "tools" && profile && <AdminToolsPanel adminEmployeeId={profile.employee_id} />}
+      {tab === "rewards" && profile && <RewardsManagementPanel adminEmployeeId={profile.employee_id} />}
+      {tab === "content" && profile && <ContentManagementPanel adminEmployeeId={profile.employee_id} />}
     </div>
   );
 }
