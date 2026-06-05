@@ -849,7 +849,7 @@ function UserDirectory({
   setPage,
   onDelete,
 }: {
-  users: { employee_id: string; name: string; date_of_birth: string; brand_name: string | null; registered: boolean }[];
+  users: { employee_id: string; name: string; date_of_birth: string; brand_name: string | null; registered: boolean; last_login_at: string | null }[];
   loading: boolean;
   search: string;
   page: number;
@@ -886,12 +886,13 @@ function UserDirectory({
               <th className="text-left px-3 py-2">Brand</th>
               <th className="text-left px-3 py-2">DOB</th>
               <th className="text-left px-3 py-2">Status</th>
+              <th className="text-left px-3 py-2">Last Login</th>
               <th className="text-right px-3 py-2">Action</th>
             </tr>
           </thead>
           <tbody>
             {pageRows.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">No matching users.</td></tr>
+              <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">No matching users.</td></tr>
             )}
             {pageRows.map((u) => (
               <tr key={u.employee_id} className="border-t border-white/5">
@@ -910,6 +911,11 @@ function UserDirectory({
                   >
                     {u.registered ? "Registered" : "Eligible"}
                   </span>
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap text-[11px]">
+                  {u.last_login_at
+                    ? formatIstFull(u.last_login_at)
+                    : <span className="text-muted-foreground italic">Never Logged In</span>}
                 </td>
                 <td className="px-3 py-2 text-right">
                   <button
