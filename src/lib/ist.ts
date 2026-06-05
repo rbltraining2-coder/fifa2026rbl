@@ -36,6 +36,26 @@ export function formatIstShort(value: string | Date): string {
     .toUpperCase();
 }
 
+/** "05-Jun-2026 | 09:15 AM IST" — admin/login timestamps. */
+export function formatIstFull(value: string | Date | null | undefined): string {
+  if (!value) return "";
+  const d = typeof value === "string" ? new Date(value) : value;
+  if (!d || isNaN(d.getTime())) return "";
+  const date = d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: IST_TZ,
+  }).replace(/\s/g, "-");
+  const time = d.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: IST_TZ,
+  });
+  return `${date} | ${time} IST`;
+}
+
 /**
  * Convert a <input type="datetime-local"> value (e.g. "2026-06-15T18:30")
  * — which the browser treats as the user's local timezone — into a UTC

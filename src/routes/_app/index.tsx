@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { FeatureMatchCard, MatchCardSkeleton, type Match } from "@/components/MatchCard";
 import PredictionSheet from "@/components/PredictionSheet";
 import TeamFlag from "@/components/TeamFlag";
-import { Lock, CalendarDays, Sparkles } from "lucide-react";
+import { Lock, CalendarDays, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { getPredictionWindow } from "@/lib/predictionWindow";
 import { formatIstDateTime, IST_LABEL } from "@/lib/ist";
 import promoBanner from "@/assets/home-banner.png";
@@ -83,6 +83,7 @@ function HomePage() {
   return (
     <div className="space-y-6">
       <h1 className="sr-only">Match Predictions</h1>
+      <AnnouncementCarousel />
       <section
         aria-label="Goal Gurus FIFA 2026 promo"
         className="w-full rounded-2xl overflow-hidden"
@@ -214,5 +215,70 @@ function HomePage() {
 
       <PredictionSheet match={sheet} onClose={() => setSheet(null)} />
     </div>
+  );
+}
+type Announcement = {
+  id: string; title: string; description: string | null; image_url: string | null;
+  start_date: string | null; end_date: string | null; active: boolean; sort_order: number;
+};
+
+function AnnouncementCarousel() {
+  const { data } = useQuery({
+    queryKey: ["announcements-active"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("announcements")
+        .select("*")
+        .eq("active", true)
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      const now = Date.now();
+      return ((data ?? []) as Announcement[]).filter(a =>
+        (!a.start_date || Date.parse(a.start_date) <= now) &&
+        (!a.end_date || Date.parse(a.end_date) >= now)
+      );
+    },
+  });
+  const items = data ?? [];
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (items.length <= 1) return;
+    const t = setInterval(() => setI(x => (x + 1) % items.length), 2000);
+    return () => clearInterval(t);
+  }, [items.length]);
+  useEffect(() => { if (i >= items.length) setI(0); }, [items.length, i]);
+
+  if (items.length === 0) return null;
+  const cur = items[i] ?? items[0];
+  const prev = () => setI((i - 1 + items.length) % items.length);
+  const next = () => setI((i + 1) % items.length);
+
+  return (
+    <section aria-label="Announcements" className="relative w-full rounded-2xl overflow-hidden glossy-card">
+      <div className="relative aspect-[16/7] sm:aspect-[16/6] bg-black/40">
+        {cur.image_url && <img src={cur.image_url} alt={cur.title} className="absolute inset-0 w-full h-full object-cover" />}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+          <p className="text-sm sm:text-lg font-black text-white drop-shadow">{cur.title}</p>
+          {cur.description && <p className="text-[11px] sm:text-xs text-white/85 mt-1 line-clamp-2">{cur.description}</p>}
+        </div>
+        {items.length > 1 && (
+          <>
+            <button onClick={prev} aria-label="Previous" className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70">
+              <ChevronLeft size={16} />
+            </button>
+            <button onClick={next} aria-label="Next" className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70">
+              <ChevronRight size={16} />
+            </button>
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+              {items.map((_, idx) => (
+                <button key={idx} onClick={() => setI(idx)} aria-label={`Go to slide ${idx + 1}`}
+                  className={`h-1.5 rounded-full transition-all ${idx === i ? "w-5 bg-white" : "w-1.5 bg-white/40"}`} />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </section>
   );
 }

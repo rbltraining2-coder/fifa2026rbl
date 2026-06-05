@@ -219,6 +219,7 @@ export type AdminUserRow = {
   date_of_birth: string;
   brand_name: string | null;
   registered: boolean;
+  last_login_at: string | null;
 };
 
 export const listAllUsers = createServerFn({ method: "POST" })
@@ -228,7 +229,7 @@ export const listAllUsers = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [eligible, registered] = await Promise.all([
       supabaseAdmin.from("eligible_employees").select("employee_id, name, date_of_birth, brand_name"),
-      supabaseAdmin.from("registered_users").select("employee_id, name, date_of_birth, brand_name"),
+      supabaseAdmin.from("registered_users").select("employee_id, name, date_of_birth, brand_name, last_login_at"),
     ]);
     if (eligible.error) throw new Error(eligible.error.message);
     if (registered.error) throw new Error(registered.error.message);
@@ -242,6 +243,7 @@ export const listAllUsers = createServerFn({ method: "POST" })
         date_of_birth: r.date_of_birth,
         brand_name: r.brand_name ?? regMap.get(r.employee_id)?.brand_name ?? null,
         registered: regMap.has(r.employee_id),
+        last_login_at: (regMap.get(r.employee_id) as any)?.last_login_at ?? null,
       });
     }
     // Surface registered-only rows too (in case someone slipped into the roster).
@@ -253,6 +255,7 @@ export const listAllUsers = createServerFn({ method: "POST" })
           date_of_birth: r.date_of_birth,
           brand_name: r.brand_name ?? null,
           registered: true,
+          last_login_at: (r as any).last_login_at ?? null,
         });
       }
     }
