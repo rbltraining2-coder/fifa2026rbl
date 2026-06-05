@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      announcements: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          image_url: string | null
+          sort_order: number
+          start_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          sort_order?: number
+          start_date?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          sort_order?: number
+          start_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       eligible_employees: {
         Row: {
           brand_name: string | null
@@ -185,6 +224,7 @@ export type Database = {
           employee_id: string
           id: string
           is_admin: boolean
+          last_login_at: string | null
           name: string
           rank: number | null
           total_points: number
@@ -198,6 +238,7 @@ export type Database = {
           employee_id: string
           id?: string
           is_admin?: boolean
+          last_login_at?: string | null
           name: string
           rank?: number | null
           total_points?: number
@@ -211,6 +252,7 @@ export type Database = {
           employee_id?: string
           id?: string
           is_admin?: boolean
+          last_login_at?: string | null
           name?: string
           rank?: number | null
           total_points?: number
@@ -262,6 +304,39 @@ export type Database = {
           rank?: number
           total_points?: number
           user_id?: string
+        }
+        Relationships: []
+      }
+      season_merchandise: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          rank: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          rank: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          rank?: number
+          updated_at?: string
         }
         Relationships: []
       }
