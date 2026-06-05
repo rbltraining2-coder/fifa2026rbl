@@ -263,6 +263,10 @@ function RewardsPage() {
                             <span className="font-normal text-muted-foreground"> | {u?.brand_name || "Not Assigned"}</span>
                           </p>
                           <p className="text-[10px] text-muted-foreground">{w.user_id}</p>
+                          <p className="text-[10px] font-bold mt-0.5" style={{ color: "#f5d76e" }}>{LABELS[tab].winner}</p>
+                          {tab === "season" && merchByRank.get(w.rank) && (
+                            <p className="text-[10px] text-[color:var(--primary-glow)] font-semibold mt-0.5">🎁 {merchByRank.get(w.rank)!.name}</p>
+                          )}
                         </div>
                         <div className="text-right">
                           <span className="text-lg font-black tabular-nums" style={{ color: "#f5d76e" }}>
@@ -288,6 +292,9 @@ function RewardsPage() {
                             {u?.name ?? r.user_id}
                             <span className="font-normal text-muted-foreground"> | {u?.brand_name || "Not Assigned"}</span>
                           </p>
+                          {tab === "season" && merchByRank.get(r.rank) && (
+                            <p className="text-[10px] text-[color:var(--primary-glow)] font-semibold">🎁 {merchByRank.get(r.rank)!.name}</p>
+                          )}
                         </div>
                         <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary-glow)" }}>
                           {r.total_points}
