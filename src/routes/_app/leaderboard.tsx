@@ -317,7 +317,12 @@ function SummaryCard({ icon, label, value, sub }: { icon: React.ReactNode; label
   );
 }
 
-function MatchLeaderboardList({ onSelect }: { onSelect: (m: CompletedMatch) => void }) {
+interface MatchLeaderboardListProps {
+  currentUserId?: string;
+}
+
+function MatchLeaderboardList({ currentUserId }: MatchLeaderboardListProps) {
+  const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
   const { data, isLoading } = useQuery({
     queryKey: ["leaderboard", "match-leaderboards", "list"],
     queryFn: async () => {
@@ -330,20 +335,68 @@ function MatchLeaderboardList({ onSelect }: { onSelect: (m: CompletedMatch) => v
       if (error) throw error;
       const list = (matches ?? []) as CompletedMatch[];
       const ids = list.map((m) => m.id);
-      if (ids.length === 0) return [] as (CompletedMatch & { predCount: number })[];
-      const { data: preds, error: pErr } = await supabase
+      if (ids.length === 0) return [];
+      const { data: preds, error: pErr } = (await supabase
         .from("predictions")
-        .select("match_id")
-        .in("match_id", ids);
+        .select(`
+          id,
+          match_id,
+          user_id,
+          points_earned,
+          created_at,
+          predicted_home_score,
+          predicted_away_score,
+          registered_users (
+            name,
+            avatar_url,
+            brand_name
+          )
+        `)
+        .in("match_id", ids)) as any;
       if (pErr) throw pErr;
-      const counts = new Map<string, number>();
-      for (const p of preds ?? []) counts.set(p.match_id as string, (counts.get(p.match_id as string) ?? 0) + 1);
-      return list.map((m) => ({ ...m, predCount: counts.get(m.id) ?? 0 }));
+      const predsList = (preds ?? []) as any[];
+      const matchPredsMap = new Map<string, any[]>();
+      for (const p of predsList) {
+        const arr = matchPredsMap.get(p.match_id) ?? [];
+        arr.push(p);
+        matchPredsMap.set(p.match_id, arr);
+      }
+      return list.map((m) => {
+        const matchPreds = matchPredsMap.get(m.id) ?? [];
+        const sorted = [...matchPreds].sort((a, b) => {
+          if ((b.points_earned ?? 0) !== (a.points_earned ?? 0)) {
+            return (b.points_earned ?? 0) - (a.points_earned ?? 0);
+          }
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        });
+        const ranked = sorted.map((p, index) => ({
+          id: p.id,
+          match_id: p.match_id,
+          user_id: p.user_id,
+          points_earned: p.points_earned ?? 0,
+          predicted_home_score: p.predicted_home_score,
+          predicted_away_score: p.predicted_away_score,
+          created_at: p.created_at,
+          rank: index + 1,
+          name: p.registered_users?.name || p.user_id,
+          avatar_url: p.registered_users?.avatar_url || null,
+          brand_name: p.registered_users?.brand_name || null,
+        }));
+        const top3 = ranked.slice(0, 3);
+        const rest = ranked.slice(3);
+        return {
+          ...m,
+          predCount: matchPreds.length,
+          top3,
+          rest,
+          allRanked: ranked,
+        };
+      });
     },
   });
 
   if (isLoading) {
-    return <ul className="space-y-2">{[0,1,2].map((i) => <li key={i} className="skeleton h-[84px]" />)}</ul>;
+    return <ul className="space-y-2">{[0, 1, 2].map((i) => <li key={i} className="skeleton h-[84px]" />)}</ul>;
   }
   const matches = data ?? [];
   if (matches.length === 0) {
@@ -355,34 +408,168 @@ function MatchLeaderboardList({ onSelect }: { onSelect: (m: CompletedMatch) => v
       </div>
     );
   }
+
   return (
-    <ul className="space-y-2">
-      {matches.map((m) => (
-        <li
-          key={m.id}
-          onClick={() => onSelect(m)}
-          className="glossy-card px-4 py-3 flex items-center gap-3 cursor-pointer transition-transform duration-200 hover:-translate-y-0.5"
-        >
-          <div className="flex -space-x-2">
-            <TeamFlag team={m.home_team} size={32} className="ring-2 ring-[color:var(--card)]" />
-            <TeamFlag team={m.away_team} size={32} className="ring-2 ring-[color:var(--card)]" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold truncate">
-              {m.home_team} <span className="text-muted-foreground">vs</span> {m.away_team}
-            </p>
-            <p className="text-[11px] text-muted-foreground">
-              {formatIstDateTime(m.match_time)} <span className="opacity-70">{IST_LABEL}</span> · {m.predCount} prediction{m.predCount === 1 ? "" : "s"}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="score-display" style={{ fontSize: "1.3rem" }}>
-              {m.home_score ?? "—"}<span className="text-muted-foreground mx-1">-</span>{m.away_score ?? "—"}
-            </p>
-            <p className="text-[9px] uppercase tracking-widest text-[color:var(--primary-glow)] font-bold mt-0.5">View Ranks →</p>
-          </div>
-        </li>
-      ))}
+    <ul className="space-y-3">
+      {matches.map((m) => {
+        const isExpanded = expandedMatchId === m.id;
+        return (
+          <li key={m.id} className="glossy-card overflow-hidden transition-all duration-200">
+            <div
+              onClick={() => setExpandedMatchId(isExpanded ? null : m.id)}
+              className="px-4 py-3 flex items-center gap-3 cursor-pointer select-none hover:bg-white/5 transition-colors"
+            >
+              <div className="flex -space-x-2 flex-shrink-0">
+                <TeamFlag team={m.home_team} size={32} className="ring-2 ring-[color:var(--card)]" />
+                <TeamFlag team={m.away_team} size={32} className="ring-2 ring-[color:var(--card)]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold truncate">
+                  {m.home_team} <span className="text-muted-foreground">vs</span> {m.away_team}
+                </p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {formatIstDateTime(m.match_time)} <span className="opacity-70">{IST_LABEL}</span> · {m.predCount} prediction{m.predCount === 1 ? "" : "s"}
+                </p>
+              </div>
+              <div className="hidden sm:flex -space-x-2 items-center justify-center mx-auto px-4 flex-shrink-0">
+                {m.top3.map((p, idx) => (
+                  <div
+                    key={p.user_id}
+                    className="w-7 h-7 rounded-full overflow-hidden border-2 bg-black/40 flex items-center justify-center text-[9px] font-bold ring-1 ring-black/55"
+                    style={{
+                      borderColor: idx === 0 ? "#f5d76e" : idx === 1 ? "#e2e8f0" : "#cd7f32",
+                      zIndex: 3 - idx,
+                    }}
+                    title={`Rank ${idx + 1}: ${p.name}`}
+                  >
+                    {p.avatar_url ? (
+                      <img src={p.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      p.name.slice(0, 2).toUpperCase()
+                    )}
+                  </div>
+                ))}
+                {m.top3.length === 0 && (
+                  <span className="text-[10px] text-muted-foreground/60 italic">No predictions</span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 text-right flex-shrink-0">
+                <div>
+                  <p className="score-display font-black" style={{ fontSize: "1.3rem", lineHeight: 1 }}>
+                    {m.home_score ?? "—"}<span className="text-muted-foreground mx-1">-</span>{m.away_score ?? "—"}
+                  </p>
+                  <p className="text-[9px] uppercase tracking-widest text-[color:var(--primary-glow)] font-bold mt-0.5">
+                    {isExpanded ? "Collapse" : "View Ranks"}
+                  </p>
+                </div>
+                <div
+                  className={`text-muted-foreground transition-transform duration-300 transform ${
+                    isExpanded ? "rotate-180" : "rotate-0"
+                  }`}
+                >
+                  <ChevronDown size={18} />
+                </div>
+              </div>
+            </div>
+
+            {isExpanded && (
+              <div className="px-4 pb-5 pt-3 border-t border-white/5 space-y-4 bg-black/15 animate-in fade-in slide-in-from-top-2 duration-200">
+                {m.allRanked.length === 0 ? (
+                  <div className="text-center py-6">
+                    <p className="text-sm font-semibold text-muted-foreground">No predictions for this match</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="glossy-card p-5 pb-3 relative overflow-hidden bg-black/10">
+                      <div
+                        className="absolute inset-0 pointer-events-none opacity-60"
+                        style={{
+                          background:
+                            "radial-gradient(ellipse 60% 50% at 50% 0%, rgba(245,215,110,0.15), transparent 70%)",
+                        }}
+                      />
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground text-center font-bold relative mb-3">
+                        Match Top Performers
+                      </p>
+                      <div className="grid grid-cols-3 items-end gap-2 relative max-w-sm mx-auto">
+                        <Podium
+                          rank={2}
+                          row={m.top3[1]}
+                          points={m.top3[1]?.points_earned}
+                          prediction={m.top3[1] ? `Pick ${m.top3[1].predicted_home_score}–${m.top3[1].predicted_away_score}` : undefined}
+                        />
+                        <Podium
+                          rank={1}
+                          row={m.top3[0]}
+                          points={m.top3[0]?.points_earned}
+                          prediction={m.top3[0] ? `Pick ${m.top3[0].predicted_home_score}–${m.top3[0].predicted_away_score}` : undefined}
+                        />
+                        <Podium
+                          rank={3}
+                          row={m.top3[2]}
+                          points={m.top3[2]?.points_earned}
+                          prediction={m.top3[2] ? `Pick ${m.top3[2].predicted_home_score}–${m.top3[2].predicted_away_score}` : undefined}
+                        />
+                      </div>
+                    </div>
+
+                    {m.rest.length > 0 ? (
+                      <ul className="space-y-2">
+                        {m.rest.map((p) => {
+                          const mine = p.user_id === currentUserId;
+                          return (
+                            <li
+                              key={p.id}
+                              className={`glossy-card px-4 py-2.5 flex items-center gap-3 bg-white/[0.02] ${
+                                mine ? "rank-mine" : ""
+                              }`}
+                            >
+                              <span className="w-8 text-center text-sm font-black text-muted-foreground tabular-nums">
+                                #{p.rank}
+                              </span>
+                              <Avatar url={p.avatar_url} code={p.user_id} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold truncate tracking-tight">
+                                  {p.name}
+                                  <span className="font-normal text-muted-foreground">
+                                    {" "}
+                                    | {p.brand_name || "Not Assigned"}
+                                  </span>
+                                </p>
+                                <p className="text-[11px] text-muted-foreground">
+                                  Pick {p.predicted_home_score ?? "?"}–{p.predicted_away_score ?? "?"} · Actual{" "}
+                                  {m.home_score ?? "—"}–{m.away_score ?? "—"}
+                                </p>
+                              </div>
+                              <div className="flex flex-col items-end">
+                                <span
+                                  className="text-base font-black tabular-nums"
+                                  style={{
+                                    color: p.points_earned > 0 ? "var(--primary-glow)" : "var(--muted-foreground)",
+                                  }}
+                                >
+                                  +{p.points_earned}
+                                </span>
+                                <span className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">
+                                  pts
+                                </span>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground text-center py-2">
+                        No other predictions for this match.
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }
