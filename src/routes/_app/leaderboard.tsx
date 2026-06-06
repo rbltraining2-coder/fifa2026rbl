@@ -759,7 +759,7 @@ function MatchHistoryDetail({
   );
 }
 
-function Podium({ rank, row }: { rank: 1 | 2 | 3; row: Row | undefined }) {
+function Podium({ rank, row, points, prediction }: { rank: 1 | 2 | 3; row: any; points?: number; prediction?: string }) {
   const colors: Record<number, { bg: string; h: string }> = {
     1: { bg: "var(--gradient-podium-gold)", h: "h-32" },
     2: { bg: "var(--gradient-podium-silver)", h: "h-24" },
@@ -767,6 +767,7 @@ function Podium({ rank, row }: { rank: 1 | 2 | 3; row: Row | undefined }) {
   };
   const delays: Record<number, string> = { 2: "0ms", 1: "120ms", 3: "240ms" };
   const c = colors[rank];
+  const pts = points !== undefined ? points : (row?.total_points ?? 0);
   return (
     <div className="flex flex-col items-center gap-2">
       <div
@@ -783,8 +784,13 @@ function Podium({ rank, row }: { rank: 1 | 2 | 3; row: Row | undefined }) {
         {row?.name || "—"}
       </p>
       <p className="text-[11px] font-black tabular-nums" style={{ color: rank === 1 ? "#f5d76e" : "var(--primary-glow)" }}>
-        {row?.total_points ?? 0} PTS
+        {pts} PTS
       </p>
+      {prediction && (
+        <p className="text-[10px] text-muted-foreground text-center truncate max-w-[80px]" title={prediction}>
+          {prediction}
+        </p>
+      )}
       <div
         className={`w-full ${c.h} rounded-t-2xl flex items-start justify-center pt-2 relative tilt-card podium-rise`}
         style={{ background: c.bg, boxShadow: "var(--shadow-tilt)", animationDelay: delays[rank] }}
