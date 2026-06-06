@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { Crown, Trophy, Medal, History as HistoryIcon, ChevronLeft, ListOrdered, Users, BarChart3 } from "lucide-react";
+import { Crown, Trophy, Medal, History as HistoryIcon, ChevronLeft, ListOrdered, Users, BarChart3, ChevronDown } from "lucide-react";
 import { useMemo, useState } from "react";
 import TeamFlag from "@/components/TeamFlag";
 import { formatIstDateTime, IST_LABEL } from "@/lib/ist";
@@ -196,11 +196,7 @@ function LeaderboardPage() {
       </div>
 
       {tab === "matches" ? (
-        selectedMatch ? (
-          <MatchHistoryDetail match={selectedMatch} onBack={() => setSelectedMatch(null)} currentUserId={user?.employee_id} />
-        ) : (
-          <MatchLeaderboardList onSelect={setSelectedMatch} />
-        )
+        <MatchLeaderboardList currentUserId={user?.employee_id} />
       ) : tab === "history" ? (
         selectedMatch ? (
           <MatchHistoryDetail match={selectedMatch} onBack={() => setSelectedMatch(null)} currentUserId={user?.employee_id} />
