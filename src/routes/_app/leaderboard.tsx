@@ -662,7 +662,7 @@ function MatchHistoryDetail({
       const ids = Array.from(new Set(rows.map((r) => r.user_id)));
       const { data: users, error: uErr } = await supabase
         .from("registered_users")
-        .select("employee_id, name, brand_name")
+        .select("employee_id, name, brand_name, avatar_url")
         .in("employee_id", ids);
       if (uErr) throw uErr;
       const nameMap = new Map((users ?? []).map((u) => [u.employee_id as string, { name: (u.name as string) || (u.employee_id as string), brand_name: (u.brand_name as string | null) ?? null }]));
