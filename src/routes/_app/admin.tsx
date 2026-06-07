@@ -37,6 +37,11 @@ import {
   listAnnouncementsAdmin,
   type Merchandise,
   type Announcement,
+  upsertPrizeLabel,
+  deletePrizeLabel,
+  listPrizeLabelsAdmin,
+  type PrizeLabel,
+  type PrizeLabelPeriod,
 } from "@/lib/content.functions";
 
 const ADMIN_EMPLOYEE_ID = "50161635";
