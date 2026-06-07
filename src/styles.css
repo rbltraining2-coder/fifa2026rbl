@@ -503,3 +503,18 @@
     letter-spacing: 0.04em;
   }
 }
+
+/* Prize Pill — 3D tactile label used in Rewards next to winner names. */
+.prize-pill {
+  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+  will-change: transform;
+}
+.prize-pill:hover {
+  transform: translateY(-1px) scale(1.04);
+  filter: brightness(1.06) saturate(1.05);
+  box-shadow:
+    0 10px 22px -6px rgba(0,0,0,0.6),
+    0 4px 8px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.65),
+    inset 0 -2px 3px rgba(0,0,0,0.25);
+}
