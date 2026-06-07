@@ -53,6 +53,8 @@ type RewardMatchRow = { id: string; match_time: string };
 
 type MerchRow = { id: string; rank: number; name: string; image_url: string | null; active: boolean };
 
+type PrizeRow = { id: string; period_type: PeriodType; rank: number; label: string; icon: string | null; active: boolean };
+
 const TABS: { id: PeriodType; label: string; icon: typeof Calendar }[] = [
   { id: "daily",   label: "Daily",   icon: Calendar },
   { id: "weekly",  label: "Weekly",  icon: CalendarDays },
@@ -81,6 +83,25 @@ function RewardsPage() {
     (merch ?? []).forEach(r => { if (!m.has(r.rank)) m.set(r.rank, r); });
     return m;
   }, [merch]);
+
+  const { data: prizes } = useQuery({
+    queryKey: ["prize-labels"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("prize_labels")
+        .select("id, period_type, rank, label, icon, active")
+        .eq("active", true);
+      if (error) throw error;
+      return (data ?? []) as PrizeRow[];
+    },
+  });
+  const prizeByKey = useMemo(() => {
+    const m = new Map<string, PrizeRow>();
+    (prizes ?? []).forEach(r => m.set(`${r.period_type}:${r.rank}`, r));
+    return m;
+  }, [prizes]);
+  const getPrize = (period: PeriodType, rank: number) =>
+    prizeByKey.get(`${period}:${rank}`) ?? null;
 
   const { data: rows, isLoading } = useQuery({
     queryKey: ["reward_winners", tab],
@@ -264,6 +285,7 @@ function RewardsPage() {
                           </p>
                           <p className="text-[10px] text-muted-foreground">{w.user_id}</p>
                           <p className="text-[10px] font-bold mt-0.5" style={{ color: "#f5d76e" }}>{LABELS[tab].winner}</p>
+                          <PrizeBadge prize={getPrize(tab, w.rank)} tone="gold" />
                           {tab === "season" && merchByRank.get(w.rank) && (
                             <p className="text-[10px] text-[color:var(--primary-glow)] font-semibold mt-0.5">🎁 {merchByRank.get(w.rank)!.name}</p>
                           )}
@@ -292,6 +314,7 @@ function RewardsPage() {
                             {u?.name ?? r.user_id}
                             <span className="font-normal text-muted-foreground"> | {u?.brand_name || "Not Assigned"}</span>
                           </p>
+                          <PrizeBadge prize={getPrize(tab, r.rank)} tone="silver" />
                           {tab === "season" && merchByRank.get(r.rank) && (
                             <p className="text-[10px] text-[color:var(--primary-glow)] font-semibold">🎁 {merchByRank.get(r.rank)!.name}</p>
                           )}
@@ -318,5 +341,30 @@ function Avatar({ url, fallback, small }: { url: string | null; fallback: string
     <div className={`${size} rounded-full overflow-hidden border border-white/10 bg-black/30 flex items-center justify-center font-bold shrink-0`}>
       {url ? <img src={url} alt="" className="w-full h-full object-cover" /> : fallback.slice(0, 2).toUpperCase()}
     </div>
+  );
+}
+
+function PrizeBadge({ prize, tone }: { prize: PrizeRow | null; tone: "gold" | "silver" }) {
+  if (!prize) return null;
+  const gradients: Record<"gold" | "silver", string> = {
+    gold: "linear-gradient(135deg, #fde68a 0%, #f59e0b 45%, #b45309 100%)",
+    silver: "linear-gradient(135deg, #e0e7ff 0%, #a5b4fc 45%, #4f46e5 100%)",
+  };
+  const shadow =
+    "0 6px 14px -4px rgba(0,0,0,0.55), 0 2px 4px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -2px 3px rgba(0,0,0,0.28)";
+  return (
+    <span
+      title={prize.label}
+      className="prize-pill inline-flex items-center gap-1 mt-1 px-2.5 py-[3px] rounded-full text-[10px] font-black uppercase tracking-wider text-black/85 max-w-full"
+      style={{
+        background: gradients[tone],
+        boxShadow: shadow,
+        border: "1px solid rgba(255,255,255,0.35)",
+        textShadow: "0 1px 0 rgba(255,255,255,0.4)",
+      }}
+    >
+      {prize.icon && <span className="text-[11px] leading-none">{prize.icon}</span>}
+      <span className="truncate">{prize.label}</span>
+    </span>
   );
 }
