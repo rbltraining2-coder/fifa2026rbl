@@ -1419,6 +1419,137 @@ function RewardsManagementPanel({ adminEmployeeId }: { adminEmployeeId: string }
 }
 
 /* ================================================================== */
+/* Prize Labels — Daily / Weekly / Monthly / Season                    */
+/* ================================================================== */
+function PrizeLabelsPanel({ adminEmployeeId }: { adminEmployeeId: string }) {
+  const qc = useQueryClient();
+  const listFn = useServerFn(listPrizeLabelsAdmin);
+  const upsertFn = useServerFn(upsertPrizeLabel);
+  const delFn = useServerFn(deletePrizeLabel);
+
+  const q = useQuery({
+    queryKey: ["admin-prize-labels"],
+    queryFn: () => listFn({ data: { adminEmployeeId } }),
+  });
+
+  const empty: Partial<PrizeLabel> = { period_type: "daily", rank: 1, label: "", icon: "🎁", active: true };
+  const [form, setForm] = useState<Partial<PrizeLabel>>(empty);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const reset = () => { setForm(empty); setEditing(null); };
+
+  const save = async () => {
+    if (!form.label?.trim()) { toast.error("Prize label is required"); return; }
+    setSaving(true);
+    try {
+      await upsertFn({
+        data: {
+          adminEmployeeId,
+          id: editing ?? undefined,
+          period_type: (form.period_type ?? "daily") as PrizeLabelPeriod,
+          rank: Number(form.rank) || 1,
+          label: form.label!.trim(),
+          icon: form.icon ?? null,
+          active: form.active ?? true,
+        },
+      });
+      toast.success(editing ? "Prize updated" : "Prize created");
+      reset();
+      await qc.invalidateQueries({ queryKey: ["admin-prize-labels"] });
+      await qc.invalidateQueries({ queryKey: ["prize-labels"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Save failed");
+    } finally { setSaving(false); }
+  };
+
+  const grouped = useMemo(() => {
+    const m: Record<PrizeLabelPeriod, PrizeLabel[]> = { daily: [], weekly: [], monthly: [], season: [] };
+    (q.data?.items ?? []).forEach(p => { m[p.period_type].push(p); });
+    return m;
+  }, [q.data]);
+
+  return (
+    <div className="space-y-4">
+      <section className="glossy-card p-5 space-y-3">
+        <h3 className="text-sm font-bold uppercase tracking-wider">
+          {editing ? "Edit Prize Label" : "Assign Prize / Gift Label"}
+        </h3>
+        <p className="text-[11px] text-muted-foreground">
+          Assign a gift label to a rank within a category. The label appears next to the winner's name on the Rewards page.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <label className="space-y-1"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Category</span>
+            <select value={form.period_type ?? "daily"} onChange={e => setForm(f => ({ ...f, period_type: e.target.value as PrizeLabelPeriod }))} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="season">Season</option>
+            </select>
+          </label>
+          <label className="space-y-1"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Rank</span>
+            <input type="number" min={1} max={100} value={form.rank ?? 1} onChange={e => setForm(f => ({ ...f, rank: Number(e.target.value) }))} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none" />
+          </label>
+          <label className="space-y-1"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Icon (emoji)</span>
+            <input value={form.icon ?? ""} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="🎁" maxLength={32} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none" />
+          </label>
+          <label className="space-y-1"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Label</span>
+            <input value={form.label ?? ""} onChange={e => setForm(f => ({ ...f, label: e.target.value }))} placeholder="₹500 Voucher" maxLength={120} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none" />
+          </label>
+          <label className="flex items-center gap-2 text-xs">
+            <input type="checkbox" checked={form.active ?? true} onChange={e => setForm(f => ({ ...f, active: e.target.checked }))} />
+            Active
+          </label>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={save} disabled={saving} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-white disabled:opacity-60" style={{ background: "var(--gradient-primary)" }}>
+            {saving ? "Saving…" : editing ? "Save Changes" : "Assign Prize"}
+          </button>
+          {editing && <button onClick={reset} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider border border-white/15">Cancel</button>}
+        </div>
+      </section>
+
+      {(["daily","weekly","monthly","season"] as PrizeLabelPeriod[]).map(period => (
+        <section key={period} className="glossy-card p-5">
+          <h3 className="text-sm font-bold uppercase tracking-wider mb-3">
+            {period} Prizes ({grouped[period].length})
+          </h3>
+          {grouped[period].length === 0 ? (
+            <p className="text-xs text-muted-foreground">No prizes assigned for {period}.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-white/10">
+              <table className="w-full text-xs">
+                <thead className="bg-white/5 text-muted-foreground uppercase tracking-wider">
+                  <tr><th className="text-left px-3 py-2">Rank</th><th className="text-left px-3 py-2">Icon</th><th className="text-left px-3 py-2">Label</th><th className="text-left px-3 py-2">Status</th><th className="text-right px-3 py-2">Actions</th></tr>
+                </thead>
+                <tbody>
+                  {grouped[period].map(p => (
+                    <tr key={p.id} className="border-t border-white/5">
+                      <td className="px-3 py-2 font-bold">#{p.rank}</td>
+                      <td className="px-3 py-2 text-base">{p.icon ?? "—"}</td>
+                      <td className="px-3 py-2 font-semibold">{p.label}</td>
+                      <td className="px-3 py-2">{p.active ? <span className="text-[color:var(--success)] font-bold">Active</span> : <span className="text-muted-foreground">Inactive</span>}</td>
+                      <td className="px-3 py-2 text-right space-x-2">
+                        <button onClick={() => { setEditing(p.id); setForm(p); }} className="px-2 py-1 rounded text-[11px] border border-white/15">Edit</button>
+                        <button onClick={async () => {
+                          if (!window.confirm(`Delete prize "${p.label}"?`)) return;
+                          try { await delFn({ data: { adminEmployeeId, id: p.id } }); toast.success("Deleted"); await qc.invalidateQueries({ queryKey: ["admin-prize-labels"] }); await qc.invalidateQueries({ queryKey: ["prize-labels"] }); }
+                          catch (e) { toast.error(e instanceof Error ? e.message : "Delete failed"); }
+                        }} className="px-2 py-1 rounded text-[11px] border border-red-500/40 text-red-300">Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      ))}
+    </div>
+  );
+}
+
+/* ================================================================== */
 /* Content Management — Homepage Announcements                          */
 /* ================================================================== */
 function ContentManagementPanel({ adminEmployeeId }: { adminEmployeeId: string }) {
