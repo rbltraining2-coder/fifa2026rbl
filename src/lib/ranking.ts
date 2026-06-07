@@ -23,24 +23,24 @@ export function buildUserStatMap<T>(
   rows: T[],
   getUserId: (r: T) => string,
   getPoints: (r: T) => number,
-  getCreatedAt: (r: T) => string,
+  getUpdatedAt: (r: T) => string,
 ): UserStatMap {
   const map: UserStatMap = new Map();
   for (const row of rows) {
     const userId = getUserId(row);
     const points = getPoints(row);
-    const createdAt = getCreatedAt(row);
+    const updatedAt = getUpdatedAt(row);
     const cur = map.get(userId);
     if (!cur) {
       map.set(userId, {
         exactCount: points === 3 ? 1 : 0,
         winnerCount: points === 1 ? 1 : 0,
-        firstAt: createdAt,
+        firstAt: updatedAt,
       });
     } else {
       if (points === 3) cur.exactCount += 1;
       if (points === 1) cur.winnerCount += 1;
-      if (createdAt < cur.firstAt) cur.firstAt = createdAt;
+      if (updatedAt < cur.firstAt) cur.firstAt = updatedAt;
     }
   }
   return map;
@@ -58,7 +58,7 @@ export function useUserRankingStats() {
       for (let from = 0; ; from += pageSize) {
         const { data, error } = await supabase
           .from("predictions")
-          .select("user_id, points_earned, created_at")
+          .select("user_id, points_earned, updated_at")
           .range(from, from + pageSize - 1);
         if (error) throw error;
         const rows = data ?? [];
@@ -68,12 +68,12 @@ export function useUserRankingStats() {
             map.set(p.user_id, {
               exactCount: p.points_earned === 3 ? 1 : 0,
               winnerCount: p.points_earned === 1 ? 1 : 0,
-              firstAt: p.created_at,
+              firstAt: p.updated_at,
             });
           } else {
             if (p.points_earned === 3) cur.exactCount += 1;
             if (p.points_earned === 1) cur.winnerCount += 1;
-            if (p.created_at < cur.firstAt) cur.firstAt = p.created_at;
+            if (p.updated_at < cur.firstAt) cur.firstAt = p.updated_at;
           }
         }
         if (rows.length < pageSize) break;

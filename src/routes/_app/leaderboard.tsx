@@ -54,7 +54,7 @@ type MatchPredictionRow = {
   predicted_away_score: number | null;
   winner: string | null;
   points_earned: number;
-  created_at: string;
+  updated_at: string;
 };
 
 type PredictionAggregateRow = {
@@ -62,7 +62,7 @@ type PredictionAggregateRow = {
   user_id: string;
   match_id: string;
   points_earned: number;
-  created_at: string;
+  updated_at: string;
 };
 
 function LeaderboardPage() {
@@ -95,7 +95,7 @@ function LeaderboardPage() {
       for (let from = 0; ; from += pageSize) {
         const { data, error } = await supabase
           .from("predictions")
-          .select("id, user_id, match_id, points_earned, created_at")
+          .select("id, user_id, match_id, points_earned, updated_at")
           .range(from, from + pageSize - 1);
         if (error) throw error;
         preds.push(...((data ?? []) as PredictionAggregateRow[]));
@@ -103,7 +103,7 @@ function LeaderboardPage() {
       }
 
       const scoredPreds = preds.filter((p) => completedIds.has(p.match_id));
-      const statMap = buildUserStatMap(scoredPreds, (p) => p.user_id, (p) => p.points_earned ?? 0, (p) => p.created_at);
+      const statMap = buildUserStatMap(scoredPreds, (p) => p.user_id, (p) => p.points_earned ?? 0, (p) => p.updated_at);
       const aggregates = new Map<string, Pick<Row, "total_points" | "exact_hits" | "winner_hits" | "played" | "accuracy" | "first_prediction_at">>();
       for (const p of scoredPreds) {
         const cur = aggregates.get(p.user_id) ?? {
@@ -112,13 +112,13 @@ function LeaderboardPage() {
           winner_hits: 0,
           played: 0,
           accuracy: 0,
-          first_prediction_at: p.created_at,
+          first_prediction_at: p.updated_at,
         };
         cur.total_points += p.points_earned ?? 0;
         cur.exact_hits += p.points_earned === 3 ? 1 : 0;
         cur.winner_hits += p.points_earned === 1 ? 1 : 0;
         cur.played += 1;
-        if (p.created_at < cur.first_prediction_at) cur.first_prediction_at = p.created_at;
+        if (p.updated_at < cur.first_prediction_at) cur.first_prediction_at = p.updated_at;
         aggregates.set(p.user_id, cur);
       }
 
@@ -654,7 +654,7 @@ function MatchHistoryDetail({
     queryFn: async () => {
       const { data: preds, error: pErr } = await supabase
         .from("predictions")
-        .select("id, user_id, predicted_home_score, predicted_away_score, winner, points_earned, created_at")
+        .select("id, user_id, predicted_home_score, predicted_away_score, winner, points_earned, updated_at")
         .eq("match_id", match.id);
       if (pErr) throw pErr;
       const rows = (preds ?? []) as MatchPredictionRow[];
@@ -671,7 +671,7 @@ function MatchHistoryDetail({
   });
 
   const stats = useMemo(
-    () => buildUserStatMap(rawData ?? [], (r) => r.user_id, (r) => r.points_earned ?? 0, (r) => r.created_at),
+    () => buildUserStatMap(rawData ?? [], (r) => r.user_id, (r) => r.points_earned ?? 0, (r) => r.updated_at),
     [rawData],
   );
 
