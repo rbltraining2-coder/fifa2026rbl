@@ -757,7 +757,12 @@ function AdminPage() {
 
       {tab === "sync" && <AutoSyncGuide />}
       {tab === "tools" && profile && <AdminToolsPanel adminEmployeeId={profile.employee_id} />}
-      {tab === "rewards" && profile && <RewardsManagementPanel adminEmployeeId={profile.employee_id} />}
+      {tab === "rewards" && profile && (
+        <div className="space-y-6">
+          <PrizeLabelsPanel adminEmployeeId={profile.employee_id} />
+          <RewardsManagementPanel adminEmployeeId={profile.employee_id} />
+        </div>
+      )}
       {tab === "content" && profile && <ContentManagementPanel adminEmployeeId={profile.employee_id} />}
     </div>
   );
