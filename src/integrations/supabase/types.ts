@@ -179,6 +179,39 @@ export type Database = {
           },
         ]
       }
+      prize_labels: {
+        Row: {
+          active: boolean
+          created_at: string
+          icon: string | null
+          id: string
+          label: string
+          period_type: string
+          rank: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          icon?: string | null
+          id?: string
+          label: string
+          period_type: string
+          rank: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          icon?: string | null
+          id?: string
+          label?: string
+          period_type?: string
+          rank?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
