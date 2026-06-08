@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import loginBg from "@/assets/login-bg.png";
 import rblLogoAsset from "@/assets/rbl-fifa-logo.png.asset.json";
+import superdryAsset from "@/assets/superdry-logo.png.asset.json";
 import { Camera } from "lucide-react";
 import { DobInput } from "@/components/DobInput";
 
