@@ -234,16 +234,35 @@ export const listAllUsers = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ users: AdminUserRow[] }> => {
     await assertAdmin(data.adminEmployeeId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [eligible, registered] = await Promise.all([
-      supabaseAdmin.from("eligible_employees").select("employee_id, name, date_of_birth, brand_name").limit(10000),
-      supabaseAdmin.from("registered_users").select("employee_id, name, date_of_birth, brand_name, last_login_at").limit(10000),
+    const pageSize = 1000;
+    async function fetchAll<T>(table: "eligible_employees" | "registered_users", columns: string): Promise<T[]> {
+      const all: T[] = [];
+      for (let from = 0; ; from += pageSize) {
+        const { data, error } = await supabaseAdmin
+          .from(table)
+          .select(columns)
+          .range(from, from + pageSize - 1);
+        if (error) throw new Error(error.message);
+        const rows = (data ?? []) as T[];
+        all.push(...rows);
+        if (rows.length < pageSize) break;
+      }
+      return all;
+    }
+    const [eligibleRows, registeredRows] = await Promise.all([
+      fetchAll<{ employee_id: string; name: string; date_of_birth: string; brand_name: string | null }>(
+        "eligible_employees",
+        "employee_id, name, date_of_birth, brand_name",
+      ),
+      fetchAll<{ employee_id: string; name: string; date_of_birth: string; brand_name: string | null; last_login_at: string | null }>(
+        "registered_users",
+        "employee_id, name, date_of_birth, brand_name, last_login_at",
+      ),
     ]);
-    if (eligible.error) throw new Error(eligible.error.message);
-    if (registered.error) throw new Error(registered.error.message);
 
-    const regMap = new Map((registered.data ?? []).map((r) => [r.employee_id, r]));
+    const regMap = new Map(registeredRows.map((r) => [r.employee_id, r]));
     const map = new Map<string, AdminUserRow>();
-    for (const r of eligible.data ?? []) {
+    for (const r of eligibleRows) {
       map.set(r.employee_id, {
         employee_id: r.employee_id,
         name: r.name,
@@ -254,7 +273,7 @@ export const listAllUsers = createServerFn({ method: "POST" })
       });
     }
     // Surface registered-only rows too (in case someone slipped into the roster).
-    for (const r of registered.data ?? []) {
+    for (const r of registeredRows) {
       if (!map.has(r.employee_id)) {
         map.set(r.employee_id, {
           employee_id: r.employee_id,
