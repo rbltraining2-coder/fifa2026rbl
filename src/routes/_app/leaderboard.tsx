@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import TeamFlag from "@/components/TeamFlag";
 import { formatIstDateTime, IST_LABEL } from "@/lib/ist";
 import { buildUserStatMap, sortAndRank } from "@/lib/ranking";
+import BrandLabel from "@/components/BrandLabel";
 
 export const Route = createFileRoute("/_app/leaderboard")({
   head: () => ({
@@ -249,7 +250,7 @@ function LeaderboardPage() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold truncate tracking-tight">
                   {r.name || r.employee_id}
-                  <span className="font-normal text-muted-foreground"> | {r.brand_name || "Not Assigned"}</span>
+                  <span className="font-normal text-muted-foreground"> | <BrandLabel brand={r.brand_name} /></span>
                 </p>
                 <p className="text-[11px] text-muted-foreground">{r.employee_id}</p>
               </div>
@@ -533,7 +534,7 @@ function MatchLeaderboardList({ currentUserId }: MatchLeaderboardListProps) {
                                   {p.name}
                                   <span className="font-normal text-muted-foreground">
                                     {" "}
-                                    | {p.brand_name || "Not Assigned"}
+                                    | <BrandLabel brand={p.brand_name} />
                                   </span>
                                 </p>
                                 <p className="text-[11px] text-muted-foreground">
@@ -735,7 +736,7 @@ function MatchHistoryDetail({
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold truncate tracking-tight">
                     {p.name}
-                    <span className="font-normal text-muted-foreground"> | {p.brand_name || "Not Assigned"}</span>
+                    <span className="font-normal text-muted-foreground"> | <BrandLabel brand={p.brand_name} /></span>
                   </p>
                   <p className="text-[11px] text-muted-foreground">
                     Pick {p.predicted_home_score ?? "?"}–{p.predicted_away_score ?? "?"} · Actual {match.home_score ?? "—"}–{match.away_score ?? "—"}
