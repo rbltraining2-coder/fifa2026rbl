@@ -28,6 +28,21 @@ import {
 } from "@/lib/admin-tools.functions";
 import { formatIstShort, IST_LABEL } from "@/lib/ist";
 import { istLocalInputToUtcIso } from "@/lib/ist";
+import {
+  upsertMerchandise,
+  deleteMerchandise,
+  listMerchandise,
+  upsertAnnouncement,
+  deleteAnnouncement,
+  listAnnouncementsAdmin,
+  type Merchandise,
+  type Announcement,
+  upsertPrizeLabel,
+  deletePrizeLabel,
+  listPrizeLabelsAdmin,
+  type PrizeLabel,
+  type PrizeLabelPeriod,
+} from "@/lib/content.functions";
 
 const ADMIN_EMPLOYEE_ID = "50161635";
 
@@ -757,6 +772,13 @@ function AdminPage() {
 
       {tab === "sync" && <AutoSyncGuide />}
       {tab === "tools" && profile && <AdminToolsPanel adminEmployeeId={profile.employee_id} />}
+      {tab === "rewards" && profile && (
+        <div className="space-y-6">
+          <PrizeLabelsPanel adminEmployeeId={profile.employee_id} />
+          <RewardsManagementPanel adminEmployeeId={profile.employee_id} />
+        </div>
+      )}
+      {tab === "content" && profile && <ContentManagementPanel adminEmployeeId={profile.employee_id} />}
     </div>
   );
 }
