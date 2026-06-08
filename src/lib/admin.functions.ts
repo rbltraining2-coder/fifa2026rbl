@@ -158,11 +158,18 @@ export const importEligibleEmployees = createServerFn({ method: "POST" })
     if (insErr) throw new Error(insErr.message);
 
     // Sync brand_name onto already-registered users so existing rosters update too.
-    for (const r of deduped) {
-      await supabaseAdmin
-        .from("registered_users")
-        .update({ brand_name: r.brand_name })
-        .eq("employee_id", r.employee_id);
+    // Run updates in parallel, chunked to avoid overwhelming the database.
+    const CHUNK_SIZE = 50;
+    for (let i = 0; i < deduped.length; i += CHUNK_SIZE) {
+      const chunk = deduped.slice(i, i + CHUNK_SIZE);
+      await Promise.all(
+        chunk.map((r) =>
+          supabaseAdmin
+            .from("registered_users")
+            .update({ brand_name: r.brand_name })
+            .eq("employee_id", r.employee_id),
+        ),
+      );
     }
     return { inserted: count ?? deduped.length };
   });
