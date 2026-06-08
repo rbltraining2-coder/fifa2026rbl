@@ -1,4 +1,5 @@
 import rblLogo from "@/assets/rbl-logo.png";
+import superdryAsset from "@/assets/superdry-logo.png.asset.json";
 
 export default function BrandHeader({
   size = 32,
@@ -20,7 +21,11 @@ export default function BrandHeader({
       <span className={`${textClass} font-semibold tracking-wide text-white/95 leading-tight`}>
         RBL FIFA 2026 League
         <span className="text-white/55"> — Powered by </span>
-        <span style={{ color: "#F05524" }} className="font-bold">Superdry</span>
+        <img
+          src={superdryAsset.url}
+          alt="Superdry"
+          className="inline-block w-auto align-middle h-4"
+        />
       </span>
     </div>
   );

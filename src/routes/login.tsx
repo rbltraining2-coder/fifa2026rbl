@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import loginBg from "@/assets/login-bg.png";
 import rblLogoAsset from "@/assets/rbl-fifa-logo.png.asset.json";
+import superdryAsset from "@/assets/superdry-logo.png.asset.json";
 import { Camera } from "lucide-react";
 import { DobInput } from "@/components/DobInput";
 
@@ -145,7 +146,12 @@ function LoginPage() {
             RBL FIFA 2026 League
           </h1>
           <p className="mt-1 text-xs uppercase tracking-[0.3em] text-white/70">
-            Powered by <span style={{ color: "#F05524" }} className="font-bold">Superdry</span>
+            <span className="align-middle">Powered by </span>
+            <img
+              src={superdryAsset.url}
+              alt="Superdry"
+              className="inline-block w-auto align-middle h-5 ml-1"
+            />
           </p>
         </div>
 
