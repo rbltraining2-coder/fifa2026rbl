@@ -26,7 +26,7 @@ import {
   type AdminMatchRow,
   type SyncLogRow,
 } from "@/lib/admin-tools.functions";
-import { formatIstShort, IST_LABEL } from "@/lib/ist";
+import { formatIstShort, formatIstFull, IST_LABEL } from "@/lib/ist";
 import { istLocalInputToUtcIso } from "@/lib/ist";
 import {
   upsertMerchandise,
