@@ -1323,3 +1323,364 @@ function SyncLogTable({ logs, loading }: { logs: SyncLogRow[]; loading: boolean 
     </div>
   );
 }
+function RewardsManagementPanel({ adminEmployeeId }: { adminEmployeeId: string }) {
+  const qc = useQueryClient();
+  const listFn = useServerFn(listMerchandise);
+  const upsertFn = useServerFn(upsertMerchandise);
+  const delFn = useServerFn(deleteMerchandise);
+
+  const q = useQuery({
+    queryKey: ["admin-merch"],
+    queryFn: () => listFn({ data: { adminEmployeeId } }),
+  });
+
+  const [form, setForm] = useState<Partial<Merchandise>>({ rank: 1, name: "", description: "", image_url: "", active: true });
+  const [editing, setEditing] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const reset = () => { setForm({ rank: 1, name: "", description: "", image_url: "", active: true }); setEditing(null); };
+
+  const save = async () => {
+    if (!form.name?.trim()) { toast.error("Reward name is required"); return; }
+    setSaving(true);
+    try {
+      await upsertFn({
+        data: {
+          adminEmployeeId,
+          id: editing ?? undefined,
+          rank: Number(form.rank) || 1,
+          name: form.name!.trim(),
+          description: form.description ?? null,
+          image_url: form.image_url ?? null,
+          active: form.active ?? true,
+        },
+      });
+      toast.success(editing ? "Reward updated" : "Reward created");
+      reset();
+      await qc.invalidateQueries({ queryKey: ["admin-merch"] });
+      await qc.invalidateQueries({ queryKey: ["season-merch"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Save failed");
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <section className="glossy-card p-5 space-y-3">
+        <h3 className="text-sm font-bold uppercase tracking-wider">{editing ? "Edit Reward" : "Create Season Reward"}</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label className="space-y-1"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Rank Eligibility</span>
+            <input type="number" min={1} max={100} value={form.rank ?? 1} onChange={e => setForm(f => ({ ...f, rank: Number(e.target.value) }))} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none" />
+          </label>
+          <label className="space-y-1"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Reward Name</span>
+            <input value={form.name ?? ""} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="FIFA Jersey" maxLength={120} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none" />
+          </label>
+          <label className="space-y-1 sm:col-span-2"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Description</span>
+            <textarea value={form.description ?? ""} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} maxLength={500} rows={2} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none" />
+          </label>
+          <label className="space-y-1 sm:col-span-2"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Image URL</span>
+            <input value={form.image_url ?? ""} onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://…" maxLength={1024} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none" />
+          </label>
+          <label className="flex items-center gap-2 text-xs">
+            <input type="checkbox" checked={form.active ?? true} onChange={e => setForm(f => ({ ...f, active: e.target.checked }))} />
+            Active
+          </label>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={save} disabled={saving} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-white disabled:opacity-60" style={{ background: "var(--gradient-primary)" }}>
+            {saving ? "Saving…" : editing ? "Save Changes" : "Create Reward"}
+          </button>
+          {editing && <button onClick={reset} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider border border-white/15">Cancel</button>}
+        </div>
+      </section>
+
+      <section className="glossy-card p-5">
+        <h3 className="text-sm font-bold uppercase tracking-wider mb-3">Season Rewards ({q.data?.items.length ?? 0})</h3>
+        {q.isLoading ? <p className="text-xs text-muted-foreground">Loading…</p> : (
+          <div className="overflow-x-auto rounded-lg border border-white/10">
+            <table className="w-full text-xs">
+              <thead className="bg-white/5 text-muted-foreground uppercase tracking-wider">
+                <tr><th className="text-left px-3 py-2">Rank</th><th className="text-left px-3 py-2">Reward</th><th className="text-left px-3 py-2">Image</th><th className="text-left px-3 py-2">Status</th><th className="text-right px-3 py-2">Actions</th></tr>
+              </thead>
+              <tbody>
+                {(q.data?.items ?? []).length === 0 && <tr><td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">No season rewards yet.</td></tr>}
+                {(q.data?.items ?? []).map(m => (
+                  <tr key={m.id} className="border-t border-white/5">
+                    <td className="px-3 py-2 font-bold">#{m.rank}</td>
+                    <td className="px-3 py-2"><div className="font-bold">{m.name}</div>{m.description && <div className="text-muted-foreground text-[11px]">{m.description}</div>}</td>
+                    <td className="px-3 py-2">{m.image_url ? <img src={m.image_url} alt="" className="w-10 h-10 rounded object-cover" /> : "—"}</td>
+                    <td className="px-3 py-2">{m.active ? <span className="text-[color:var(--success)] font-bold">Active</span> : <span className="text-muted-foreground">Inactive</span>}</td>
+                    <td className="px-3 py-2 text-right space-x-2">
+                      <button onClick={() => { setEditing(m.id); setForm(m); }} className="px-2 py-1 rounded text-[11px] border border-white/15">Edit</button>
+                      <button onClick={async () => {
+                        if (!window.confirm(`Delete reward "${m.name}"?`)) return;
+                        try { await delFn({ data: { adminEmployeeId, id: m.id } }); toast.success("Deleted"); await qc.invalidateQueries({ queryKey: ["admin-merch"] }); await qc.invalidateQueries({ queryKey: ["season-merch"] }); }
+                        catch (e) { toast.error(e instanceof Error ? e.message : "Delete failed"); }
+                      }} className="px-2 py-1 rounded text-[11px] border border-red-500/40 text-red-300">Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+/* ================================================================== */
+/* Prize Labels — Daily / Weekly / Monthly / Season                    */
+/* ================================================================== */
+function PrizeLabelsPanel({ adminEmployeeId }: { adminEmployeeId: string }) {
+  const qc = useQueryClient();
+  const listFn = useServerFn(listPrizeLabelsAdmin);
+  const upsertFn = useServerFn(upsertPrizeLabel);
+  const delFn = useServerFn(deletePrizeLabel);
+
+  const q = useQuery({
+    queryKey: ["admin-prize-labels"],
+    queryFn: () => listFn({ data: { adminEmployeeId } }),
+  });
+
+  const empty: Partial<PrizeLabel> = { period_type: "daily", rank: 1, label: "", icon: "🎁", active: true };
+  const [form, setForm] = useState<Partial<PrizeLabel>>(empty);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const reset = () => { setForm(empty); setEditing(null); };
+
+  const save = async () => {
+    if (!form.label?.trim()) { toast.error("Prize label is required"); return; }
+    setSaving(true);
+    try {
+      await upsertFn({
+        data: {
+          adminEmployeeId,
+          id: editing ?? undefined,
+          period_type: (form.period_type ?? "daily") as PrizeLabelPeriod,
+          rank: Number(form.rank) || 1,
+          label: form.label!.trim(),
+          icon: form.icon ?? null,
+          active: form.active ?? true,
+        },
+      });
+      toast.success(editing ? "Prize updated" : "Prize created");
+      reset();
+      await qc.invalidateQueries({ queryKey: ["admin-prize-labels"] });
+      await qc.invalidateQueries({ queryKey: ["prize-labels"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Save failed");
+    } finally { setSaving(false); }
+  };
+
+  const grouped = useMemo(() => {
+    const m: Record<PrizeLabelPeriod, PrizeLabel[]> = { daily: [], weekly: [], monthly: [], season: [] };
+    (q.data?.items ?? []).forEach(p => { m[p.period_type].push(p); });
+    return m;
+  }, [q.data]);
+
+  return (
+    <div className="space-y-4">
+      <section className="glossy-card p-5 space-y-3">
+        <h3 className="text-sm font-bold uppercase tracking-wider">
+          {editing ? "Edit Prize Label" : "Assign Prize / Gift Label"}
+        </h3>
+        <p className="text-[11px] text-muted-foreground">
+          Assign a gift label to a rank within a category. The label appears next to the winner's name on the Rewards page.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <label className="space-y-1"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Category</span>
+            <select value={form.period_type ?? "daily"} onChange={e => setForm(f => ({ ...f, period_type: e.target.value as PrizeLabelPeriod }))} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="season">Season</option>
+            </select>
+          </label>
+          <label className="space-y-1"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Rank</span>
+            <input type="number" min={1} max={100} value={form.rank ?? 1} onChange={e => setForm(f => ({ ...f, rank: Number(e.target.value) }))} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none" />
+          </label>
+          <label className="space-y-1"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Icon (emoji)</span>
+            <input value={form.icon ?? ""} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="🎁" maxLength={32} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none" />
+          </label>
+          <label className="space-y-1"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Label</span>
+            <input value={form.label ?? ""} onChange={e => setForm(f => ({ ...f, label: e.target.value }))} placeholder="₹500 Voucher" maxLength={120} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none" />
+          </label>
+          <label className="flex items-center gap-2 text-xs">
+            <input type="checkbox" checked={form.active ?? true} onChange={e => setForm(f => ({ ...f, active: e.target.checked }))} />
+            Active
+          </label>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={save} disabled={saving} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-white disabled:opacity-60" style={{ background: "var(--gradient-primary)" }}>
+            {saving ? "Saving…" : editing ? "Save Changes" : "Assign Prize"}
+          </button>
+          {editing && <button onClick={reset} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider border border-white/15">Cancel</button>}
+        </div>
+      </section>
+
+      {(["daily","weekly","monthly","season"] as PrizeLabelPeriod[]).map(period => (
+        <section key={period} className="glossy-card p-5">
+          <h3 className="text-sm font-bold uppercase tracking-wider mb-3">
+            {period} Prizes ({grouped[period].length})
+          </h3>
+          {grouped[period].length === 0 ? (
+            <p className="text-xs text-muted-foreground">No prizes assigned for {period}.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-white/10">
+              <table className="w-full text-xs">
+                <thead className="bg-white/5 text-muted-foreground uppercase tracking-wider">
+                  <tr><th className="text-left px-3 py-2">Rank</th><th className="text-left px-3 py-2">Icon</th><th className="text-left px-3 py-2">Label</th><th className="text-left px-3 py-2">Status</th><th className="text-right px-3 py-2">Actions</th></tr>
+                </thead>
+                <tbody>
+                  {grouped[period].map(p => (
+                    <tr key={p.id} className="border-t border-white/5">
+                      <td className="px-3 py-2 font-bold">#{p.rank}</td>
+                      <td className="px-3 py-2 text-base">{p.icon ?? "—"}</td>
+                      <td className="px-3 py-2 font-semibold">{p.label}</td>
+                      <td className="px-3 py-2">{p.active ? <span className="text-[color:var(--success)] font-bold">Active</span> : <span className="text-muted-foreground">Inactive</span>}</td>
+                      <td className="px-3 py-2 text-right space-x-2">
+                        <button onClick={() => { setEditing(p.id); setForm(p); }} className="px-2 py-1 rounded text-[11px] border border-white/15">Edit</button>
+                        <button onClick={async () => {
+                          if (!window.confirm(`Delete prize "${p.label}"?`)) return;
+                          try { await delFn({ data: { adminEmployeeId, id: p.id } }); toast.success("Deleted"); await qc.invalidateQueries({ queryKey: ["admin-prize-labels"] }); await qc.invalidateQueries({ queryKey: ["prize-labels"] }); }
+                          catch (e) { toast.error(e instanceof Error ? e.message : "Delete failed"); }
+                        }} className="px-2 py-1 rounded text-[11px] border border-red-500/40 text-red-300">Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      ))}
+    </div>
+  );
+}
+
+/* ================================================================== */
+/* Content Management — Homepage Announcements                          */
+/* ================================================================== */
+function ContentManagementPanel({ adminEmployeeId }: { adminEmployeeId: string }) {
+  const qc = useQueryClient();
+  const listFn = useServerFn(listAnnouncementsAdmin);
+  const upsertFn = useServerFn(upsertAnnouncement);
+  const delFn = useServerFn(deleteAnnouncement);
+
+  const q = useQuery({
+    queryKey: ["admin-announcements"],
+    queryFn: () => listFn({ data: { adminEmployeeId } }),
+  });
+
+  const empty: Partial<Announcement> = { title: "", description: "", image_url: "", start_date: "", end_date: "", active: true, sort_order: 0 };
+  const [form, setForm] = useState<Partial<Announcement>>(empty);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const reset = () => { setForm(empty); setEditing(null); };
+
+  const toLocal = (iso: string | null | undefined) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const save = async () => {
+    if (!form.title?.trim()) { toast.error("Title is required"); return; }
+    setSaving(true);
+    try {
+      await upsertFn({
+        data: {
+          adminEmployeeId,
+          id: editing ?? undefined,
+          title: form.title!.trim(),
+          description: form.description ?? null,
+          image_url: form.image_url ?? null,
+          start_date: form.start_date ?? null,
+          end_date: form.end_date ?? null,
+          active: form.active ?? true,
+          sort_order: Number(form.sort_order) || 0,
+        },
+      });
+      toast.success(editing ? "Announcement updated" : "Announcement created");
+      reset();
+      await qc.invalidateQueries({ queryKey: ["admin-announcements"] });
+      await qc.invalidateQueries({ queryKey: ["announcements-active"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Save failed");
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <section className="glossy-card p-5 space-y-3">
+        <h3 className="text-sm font-bold uppercase tracking-wider">{editing ? "Edit Announcement" : "Create Announcement / Banner"}</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label className="space-y-1 sm:col-span-2"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Title</span>
+            <input value={form.title ?? ""} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} maxLength={200} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none" />
+          </label>
+          <label className="space-y-1 sm:col-span-2"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Description</span>
+            <textarea value={form.description ?? ""} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} maxLength={1000} rows={2} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none" />
+          </label>
+          <label className="space-y-1 sm:col-span-2"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Banner Image URL</span>
+            <input value={form.image_url ?? ""} onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://…" maxLength={1024} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none" />
+          </label>
+          <label className="space-y-1"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Start Date</span>
+            <input type="datetime-local" value={toLocal(form.start_date as any)} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none" />
+          </label>
+          <label className="space-y-1"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">End Date</span>
+            <input type="datetime-local" value={toLocal(form.end_date as any)} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none" />
+          </label>
+          <label className="space-y-1"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Sort Order</span>
+            <input type="number" min={0} value={form.sort_order ?? 0} onChange={e => setForm(f => ({ ...f, sort_order: Number(e.target.value) }))} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none" />
+          </label>
+          <label className="flex items-center gap-2 text-xs">
+            <input type="checkbox" checked={form.active ?? true} onChange={e => setForm(f => ({ ...f, active: e.target.checked }))} />
+            Active
+          </label>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={save} disabled={saving} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-white disabled:opacity-60" style={{ background: "var(--gradient-primary)" }}>
+            {saving ? "Saving…" : editing ? "Save Changes" : "Create Announcement"}
+          </button>
+          {editing && <button onClick={reset} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider border border-white/15">Cancel</button>}
+        </div>
+      </section>
+
+      <section className="glossy-card p-5">
+        <h3 className="text-sm font-bold uppercase tracking-wider mb-3">Announcements ({q.data?.items.length ?? 0})</h3>
+        {q.isLoading ? <p className="text-xs text-muted-foreground">Loading…</p> : (
+          <ul className="space-y-2">
+            {(q.data?.items ?? []).length === 0 && <li className="text-xs text-muted-foreground text-center py-6">No announcements yet.</li>}
+            {(q.data?.items ?? []).map(a => (
+              <li key={a.id} className="flex items-center gap-3 p-3 rounded-lg border border-white/10 bg-black/30">
+                {a.image_url ? <img src={a.image_url} alt="" className="w-16 h-16 rounded object-cover shrink-0" /> : <div className="w-16 h-16 rounded bg-white/5 shrink-0" />}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold truncate">{a.title}</p>
+                  {a.description && <p className="text-[11px] text-muted-foreground line-clamp-2">{a.description}</p>}
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {a.active ? <span className="text-[color:var(--success)] font-bold">Active</span> : "Inactive"}
+                    {a.start_date && ` · From ${formatIstFull(a.start_date)}`}
+                    {a.end_date && ` · Until ${formatIstFull(a.end_date)}`}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1 shrink-0">
+                  <button onClick={() => { setEditing(a.id); setForm(a); }} className="px-2 py-1 rounded text-[11px] border border-white/15">Edit</button>
+                  <button onClick={async () => {
+                    if (!window.confirm(`Delete announcement "${a.title}"?`)) return;
+                    try { await delFn({ data: { adminEmployeeId, id: a.id } }); toast.success("Deleted"); await qc.invalidateQueries({ queryKey: ["admin-announcements"] }); await qc.invalidateQueries({ queryKey: ["announcements-active"] }); }
+                    catch (e) { toast.error(e instanceof Error ? e.message : "Delete failed"); }
+                  }} className="px-2 py-1 rounded text-[11px] border border-red-500/40 text-red-300">Delete</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
