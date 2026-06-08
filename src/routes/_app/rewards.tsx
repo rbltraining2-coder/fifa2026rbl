@@ -111,7 +111,7 @@ function RewardsPage() {
         .select("*")
         .eq("period_type", tab)
         .order("period_start", { ascending: false })
-        .limit(500);
+        .limit(10000);
       if (error) throw error;
       return (data ?? []) as RewardRow[];
     },
