@@ -10,7 +10,7 @@ import { compressAndUploadAvatar } from "@/lib/avatar";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import loginBg from "@/assets/login-bg.png";
-import rblLogo from "@/assets/rbl-logo.png";
+import rblLogoAsset from "@/assets/rbl-fifa-logo.png.asset.json";
 import { Camera } from "lucide-react";
 import { DobInput } from "@/components/DobInput";
 
@@ -136,10 +136,10 @@ function LoginPage() {
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-10">
           <img
-            src={rblLogo}
+            src={rblLogoAsset.url}
             alt="RBL FIFA 2026 League"
             className="mx-auto mb-5 object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.55)]"
-            style={{ maxHeight: 140 }}
+            style={{ maxHeight: 180 }}
           />
           <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white leading-tight">
             RBL FIFA 2026 League

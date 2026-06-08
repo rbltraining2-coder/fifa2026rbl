@@ -28,6 +28,7 @@ import {
 } from "@/lib/admin-tools.functions";
 import { formatIstShort, formatIstFull, IST_LABEL } from "@/lib/ist";
 import { istLocalInputToUtcIso } from "@/lib/ist";
+import BrandLabel from "@/components/BrandLabel";
 import {
   upsertMerchandise,
   deleteMerchandise,
@@ -922,7 +923,7 @@ function UserDirectory({
               <tr key={u.employee_id} className="border-t border-white/5">
                 <td className="px-3 py-2 font-mono">{u.employee_id}</td>
                 <td className="px-3 py-2">{u.name}</td>
-                <td className="px-3 py-2">{u.brand_name || <span className="text-muted-foreground italic">Not Assigned</span>}</td>
+                <td className="px-3 py-2">{u.brand_name ? <BrandLabel brand={u.brand_name} /> : <span className="text-muted-foreground italic">Not Assigned</span>}</td>
                 <td className="px-3 py-2">{u.date_of_birth}</td>
                 <td className="px-3 py-2">
                   <span

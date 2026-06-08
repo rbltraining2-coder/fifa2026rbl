@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Trophy, Calendar, CalendarDays, CalendarRange, Crown } from "lucide-react";
 import championBanner from "@/assets/champion-cup-banner.png";
 import { buildUserStatMap, sortAndRank } from "@/lib/ranking";
+import BrandLabel from "@/components/BrandLabel";
 
 const LABELS: Record<PeriodType, { winner: string; sub: string }> = {
   daily:   { winner: "🏆 Match Winner",     sub: "🥈 Runner-Up" },
@@ -282,7 +283,7 @@ function RewardsPage() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-black truncate">
                             {u?.name ?? w.user_id}
-                            <span className="font-normal text-muted-foreground"> | {u?.brand_name || "Not Assigned"}</span>
+                            <span className="font-normal text-muted-foreground"> | <BrandLabel brand={u?.brand_name} /></span>
                           </p>
                           <p className="text-[10px] text-muted-foreground">{w.user_id}</p>
                           <p className="text-[10px] font-bold mt-0.5" style={{ color: "#f5d76e" }}>{LABELS[tab].winner}</p>
@@ -313,7 +314,7 @@ function RewardsPage() {
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-bold truncate">
                             {u?.name ?? r.user_id}
-                            <span className="font-normal text-muted-foreground"> | {u?.brand_name || "Not Assigned"}</span>
+                            <span className="font-normal text-muted-foreground"> | <BrandLabel brand={u?.brand_name} /></span>
                           </p>
                           <PrizeBadge prize={getPrize(tab, r.rank)} tone="silver" />
                           {tab === "season" && merchByRank.get(r.rank) && (
