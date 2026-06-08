@@ -129,7 +129,8 @@ function RewardsPage() {
       const { data, error } = await supabase
         .from("registered_users")
         .select("employee_id, name, avatar_url, brand_name")
-        .in("employee_id", allUserIds);
+        .in("employee_id", allUserIds)
+        .limit(10000);
       if (error) throw error;
       const m = new Map<string, { name: string; avatar_url: string | null; brand_name: string | null }>();
       (data ?? []).forEach((u: any) =>
