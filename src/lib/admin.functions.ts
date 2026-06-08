@@ -235,8 +235,8 @@ export const listAllUsers = createServerFn({ method: "POST" })
     await assertAdmin(data.adminEmployeeId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [eligible, registered] = await Promise.all([
-      supabaseAdmin.from("eligible_employees").select("employee_id, name, date_of_birth, brand_name"),
-      supabaseAdmin.from("registered_users").select("employee_id, name, date_of_birth, brand_name, last_login_at"),
+      supabaseAdmin.from("eligible_employees").select("employee_id, name, date_of_birth, brand_name").limit(10000),
+      supabaseAdmin.from("registered_users").select("employee_id, name, date_of_birth, brand_name, last_login_at").limit(10000),
     ]);
     if (eligible.error) throw new Error(eligible.error.message);
     if (registered.error) throw new Error(registered.error.message);
