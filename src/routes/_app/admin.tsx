@@ -276,7 +276,7 @@ function AdminPage() {
         toast.error("No valid rows. Expected columns: employee_id, date_of_birth, name.");
         return;
       }
-      const chunkSize = 500;
+      const chunkSize = 100;
       let totalInserted = 0;
       const totalChunks = Math.ceil(employees.length / chunkSize);
       toastId = toast.loading(totalChunks > 1 ? `Importing batch 1 of ${totalChunks}...` : "Importing employees...");
