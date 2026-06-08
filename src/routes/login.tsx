@@ -145,7 +145,12 @@ function LoginPage() {
             RBL FIFA 2026 League
           </h1>
           <p className="mt-1 text-xs uppercase tracking-[0.3em] text-white/70">
-            Powered by <span style={{ color: "#F05524" }} className="font-bold">Superdry</span>
+            <span className="align-middle">Powered by </span>
+            <img
+              src={superdryAsset.url}
+              alt="Superdry"
+              className="inline-block w-auto align-middle h-5 ml-1"
+            />
           </p>
         </div>
 
