@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { Trophy, Calendar, CalendarDays, CalendarRange, Crown } from "lucide-react";
+import { Trophy, Calendar, CalendarDays, Crown } from "lucide-react";
 import championBannerAsset from "@/assets/rewards-banner-v2.png.asset.json";
 import { buildUserStatMap, sortAndRank } from "@/lib/ranking";
 import BrandLabel from "@/components/BrandLabel";
