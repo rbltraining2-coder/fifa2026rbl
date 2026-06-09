@@ -1,20 +1,29 @@
-import { motion } from "framer-motion";
-import { useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
 import rblLogoAsset from "@/assets/new-rbl-logo.png.asset.json";
 
 export default function CinematicTransition({
   onComplete,
-  durationMs = 2200,
+  durationMs = 3000,
+  fadeMs = 1000,
 }: {
   onComplete: () => void;
   durationMs?: number;
+  fadeMs?: number;
 }) {
+  const [visible, setVisible] = useState(true);
   useEffect(() => {
-    const t = setTimeout(onComplete, durationMs);
-    return () => clearTimeout(t);
-  }, [onComplete, durationMs]);
+    const hideTimer = setTimeout(() => setVisible(false), durationMs);
+    const doneTimer = setTimeout(onComplete, durationMs + fadeMs);
+    return () => {
+      clearTimeout(hideTimer);
+      clearTimeout(doneTimer);
+    };
+  }, [onComplete, durationMs, fadeMs]);
 
   return (
+    <AnimatePresence>
+      {visible && (
     <motion.div
       className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
       style={{
@@ -24,7 +33,7 @@ export default function CinematicTransition({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      transition={{ duration: fadeMs / 1000, ease: "easeInOut" }}
     >
       {/* Stadium light sweep */}
       <motion.div
@@ -101,5 +110,7 @@ export default function CinematicTransition({
         </motion.p>
       </div>
     </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
