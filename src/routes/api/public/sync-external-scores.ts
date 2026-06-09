@@ -32,7 +32,15 @@ function computePoints(
   ) {
     return 3;
   }
-  if (p.winner && p.winner === actualWinner) return 1;
+  const predictedWinner =
+    p.predicted_home_score != null && p.predicted_away_score != null
+      ? p.predicted_home_score > p.predicted_away_score
+        ? "home"
+        : p.predicted_home_score < p.predicted_away_score
+          ? "away"
+          : "draw"
+      : p.winner;
+  if (predictedWinner && predictedWinner === actualWinner) return 1;
   return 0;
 }
 
