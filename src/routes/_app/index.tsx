@@ -15,9 +15,9 @@ export const Route = createFileRoute("/_app/")({
   head: () => ({
     meta: [
       { title: "Match Predictions — Goal Gurus" },
-      { name: "description", content: "See today's matches and upcoming fixtures, then lock in your predictions for the RBL FIFA 2026 league." },
+      { name: "description", content: "See today's matches and upcoming fixtures, then lock in your predictions for the RBL World Cup League 2026." },
       { property: "og:title", content: "Match Predictions — Goal Gurus" },
-      { property: "og:description", content: "See today's matches and upcoming fixtures, then lock in your predictions for the RBL FIFA 2026 league." },
+      { property: "og:description", content: "See today's matches and upcoming fixtures, then lock in your predictions for the RBL World Cup League 2026." },
       { property: "og:url", content: "https://fifa2026rbl.lovable.app/" },
     ],
     links: [{ rel: "canonical", href: "https://fifa2026rbl.lovable.app/" }],
@@ -85,7 +85,7 @@ function HomePage() {
       <h1 className="sr-only">Match Predictions</h1>
       <AnnouncementCarousel />
       <section
-        aria-label="Goal Gurus FIFA 2026 promo"
+        aria-label="RBL World Cup League 2026 promo"
         className="w-full rounded-2xl overflow-hidden"
         style={{ boxShadow: "0 20px 50px -20px rgba(45,18,77,0.7)" }}
       >

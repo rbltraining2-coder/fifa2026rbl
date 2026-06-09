@@ -19,7 +19,7 @@ export default function BrandHeader({
         style={{ width: size, height: size }}
       />
       <span className={`${textClass} font-semibold tracking-wide text-white/95 leading-tight`}>
-        RBL FIFA 2026 League
+        RBL World Cup League 2026
         <span className="text-white/55"> — Powered by </span>
         <img
           src={superdryAsset.url}

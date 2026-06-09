@@ -14,14 +14,16 @@ import rblLogoAsset from "@/assets/new-rbl-logo.png.asset.json";
 import superdryAsset from "@/assets/superdry-logo.png.asset.json";
 import { Camera } from "lucide-react";
 import { DobInput } from "@/components/DobInput";
+import CinematicTransition from "@/components/CinematicTransition";
+import { AnimatePresence } from "framer-motion";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       { title: "Sign in — Goal Gurus" },
-      { name: "description", content: "Sign in to the Goal Gurus RBL FIFA 2026 prediction league with your employee code and date of birth." },
+      { name: "description", content: "Sign in to the Goal Gurus RBL World Cup League 2026 with your employee code and date of birth." },
       { property: "og:title", content: "Sign in — Goal Gurus" },
-      { property: "og:description", content: "Sign in to the Goal Gurus RBL FIFA 2026 prediction league with your employee code and date of birth." },
+      { property: "og:description", content: "Sign in to the Goal Gurus RBL World Cup League 2026 with your employee code and date of birth." },
       { property: "og:url", content: "https://fifa2026rbl.lovable.app/login" },
     ],
     links: [{ rel: "canonical", href: "https://fifa2026rbl.lovable.app/login" }],
@@ -42,6 +44,7 @@ function LoginPage() {
   const [alreadyOpen, setAlreadyOpen] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [transitioning, setTransitioning] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const nav = useNavigate();
 
@@ -65,7 +68,7 @@ function LoginPage() {
       const r = await login({ data: { employeeCode: code.trim(), dateOfBirth: dob.trim() } });
       signIn(r);
       toast.success("Welcome back!");
-      nav({ to: "/" });
+      setTransitioning(true);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sign-in failed");
     } finally {
@@ -116,7 +119,7 @@ function LoginPage() {
       });
       signIn(r);
       toast.success(`Welcome, ${eligibleName}!`);
-      nav({ to: "/" });
+      setTransitioning(true);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Registration failed");
     } finally {
@@ -143,7 +146,7 @@ function LoginPage() {
             style={{ maxHeight: 200, width: "auto" }}
           />
           <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white leading-tight">
-            RBL FIFA 2026 League
+            RBL World Cup League 2026
           </h1>
           <p className="mt-1 text-xs uppercase tracking-[0.3em] text-white/70">
             <span className="align-middle">Powered by </span>
@@ -281,6 +284,11 @@ function LoginPage() {
           </div>
         )}
       </div>
+      <AnimatePresence>
+        {transitioning && (
+          <CinematicTransition onComplete={() => nav({ to: "/" })} />
+        )}
+      </AnimatePresence>
     </main>
   );
 }
