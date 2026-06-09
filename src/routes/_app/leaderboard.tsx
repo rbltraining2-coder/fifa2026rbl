@@ -159,6 +159,9 @@ function LeaderboardPage() {
   const myIdx = rows.findIndex((r) => r.id === user?.id);
   const me = myIdx >= 0 ? rows[myIdx] : null;
   const leader = rows[0] ?? null;
+  const completedCount = leaderboardData?.completedCount ?? 0;
+  const maxPoints = rows.reduce((m, r) => Math.max(m, r.total_points ?? 0), 0);
+  const tournamentNotStarted = !isLoading && (completedCount === 0 || maxPoints === 0);
 
   return (
     <div className="space-y-5 pb-24">
@@ -204,6 +207,14 @@ function LeaderboardPage() {
         ) : (
           <MatchHistoryList onSelect={setSelectedMatch} />
         )
+      ) : (
+      <>
+      {tournamentNotStarted ? (
+        <div className="glossy-card p-8 text-center">
+          <Trophy size={28} className="mx-auto text-muted-foreground/60 mb-2" />
+          <p className="text-sm font-semibold">The tournament hasn't started yet.</p>
+          <p className="text-[12px] text-muted-foreground mt-1">Rankings will appear here once the first match is completed.</p>
+        </div>
       ) : (
       <>
       <section className="glossy-card p-5 pb-3 relative overflow-hidden">
@@ -273,8 +284,10 @@ function LeaderboardPage() {
       </ul>
       </>
       )}
+      </>
+      )}
 
-      {tab === "overall" && me && (
+      {tab === "overall" && me && !tournamentNotStarted && (
         <div className="fixed bottom-[88px] inset-x-0 z-30 px-4">
           <div
             className="mx-auto max-w-2xl glossy-card p-3 flex items-center gap-3 rank-mine"
