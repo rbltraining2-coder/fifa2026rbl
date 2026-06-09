@@ -11,7 +11,6 @@ import BrandLabel from "@/components/BrandLabel";
 const LABELS: Record<PeriodType, { winner: string; sub: string }> = {
   daily:   { winner: "🏆 Match Winner",     sub: "🥈 Runner-Up" },
   weekly:  { winner: "🥇 Weekly Champion",  sub: "🥈 Runner-Up" },
-  monthly: { winner: "🥇 Monthly Champion", sub: "🥈 Runner-Up" },
   season:  { winner: "👑 Season Champion",  sub: "🥈 Runner-Up" },
 };
 
@@ -29,7 +28,7 @@ export const Route = createFileRoute("/_app/rewards")({
   component: RewardsPage,
 });
 
-type PeriodType = "daily" | "weekly" | "monthly" | "season";
+type PeriodType = "daily" | "weekly" | "season";
 
 type RewardRow = {
   id: string;
@@ -59,7 +58,6 @@ type PrizeRow = { id: string; period_type: PeriodType; rank: number; label: stri
 const TABS: { id: PeriodType; label: string; icon: typeof Calendar }[] = [
   { id: "daily",   label: "Daily",   icon: Calendar },
   { id: "weekly",  label: "Weekly",  icon: CalendarDays },
-  { id: "monthly", label: "Monthly", icon: CalendarRange },
   { id: "season",  label: "Season",  icon: Trophy },
 ];
 
@@ -228,7 +226,7 @@ function RewardsPage() {
           boxShadow: "0 8px 24px -12px rgba(120,60,220,0.55)",
         }}
       >
-        🗓️ Rewards will be announced every <span className="text-[color:var(--primary-glow)]">Monday</span>.
+        🗓️ Rewards will be announced every <span className="font-black text-yellow-300" style={{ textShadow: "0 0 12px rgba(253,224,71,0.55)" }}>Monday</span>.
       </div>
 
       <div className="glossy-card p-1 inline-flex gap-1 w-full">
