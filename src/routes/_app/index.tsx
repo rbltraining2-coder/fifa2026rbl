@@ -9,7 +9,7 @@ import TeamFlag from "@/components/TeamFlag";
 import { Lock, CalendarDays, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { getPredictionWindow } from "@/lib/predictionWindow";
 import { formatIstDateTime, IST_LABEL } from "@/lib/ist";
-import promoBanner from "@/assets/home-banner.png";
+import promoBannerAsset from "@/assets/new-home-banner.png.asset.json";
 
 export const Route = createFileRoute("/_app/")({
   head: () => ({
@@ -90,9 +90,9 @@ function HomePage() {
         style={{ boxShadow: "0 20px 50px -20px rgba(45,18,77,0.7)" }}
       >
         <img
-          src={promoBanner}
-          alt="Make your predictions before time runs out — Goal Gurus FIFA 2026"
-          className="w-full h-auto block"
+          src={promoBannerAsset.url}
+          alt="Make your predictions before time runs out — RBL World Cup League 2026"
+          className="w-full h-auto block object-contain"
           loading="eager"
         />
       </section>
