@@ -25,7 +25,15 @@ export function computeBreakdown(p: Prediction, m: MatchResult) {
   const exact =
     p.predicted_home_score === m.home_score &&
     p.predicted_away_score === m.away_score;
-  const winnerCorrect = !!p.winner && p.winner === actualWinner;
+  const predictedWinner =
+    p.predicted_home_score != null && p.predicted_away_score != null
+      ? p.predicted_home_score > p.predicted_away_score
+        ? "home"
+        : p.predicted_home_score < p.predicted_away_score
+          ? "away"
+          : "draw"
+      : p.winner;
+  const winnerCorrect = !!predictedWinner && predictedWinner === actualWinner;
 
   let outcome: BreakdownOutcome = "miss";
   let total = 0;
