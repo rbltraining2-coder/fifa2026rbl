@@ -284,6 +284,11 @@ function LoginPage() {
           </div>
         )}
       </div>
+      <AnimatePresence>
+        {transitioning && (
+          <CinematicTransition onComplete={() => nav({ to: "/" })} />
+        )}
+      </AnimatePresence>
     </main>
   );
 }
