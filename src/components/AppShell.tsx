@@ -48,7 +48,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           <button
             onClick={() => nav({ to: "/" })}
             className="flex items-center gap-2"
-            aria-label="RBL FIFA 2026 League home"
+            aria-label="RBL World Cup League 2026 home"
           >
             <BrandHeader size={32} textClass="text-[12px] sm:text-sm" />
           </button>
