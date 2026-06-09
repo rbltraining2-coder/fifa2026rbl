@@ -85,8 +85,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "RBL FIFA 2026 Predict and win Superdry merch" },
       { property: "og:description", content: "RBL FIFA 2026 Predict and win Superdry merch" },
       { name: "twitter:description", content: "RBL FIFA 2026 Predict and win Superdry merch" },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/1Gjr7OcJQeYKP7ChANFgaUwIj582/social-images/social-1780581281174-Background_less_RBL_FIFA_logo.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/1Gjr7OcJQeYKP7ChANFgaUwIj582/social-images/social-1780581281174-Background_less_RBL_FIFA_logo.webp" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/1Gjr7OcJQeYKP7ChANFgaUwIj582/social-images/social-1781003011527-RBL_World_Cup_Legue_2026_updated_logo.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/1Gjr7OcJQeYKP7ChANFgaUwIj582/social-images/social-1781003011527-RBL_World_Cup_Legue_2026_updated_logo.webp" },
     ],
     links: [
       {
