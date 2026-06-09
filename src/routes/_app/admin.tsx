@@ -892,6 +892,16 @@ function UserDirectory({
   setPage: (n: number) => void;
   onDelete: (id: string, name: string) => void;
 }) {
+  const formatStamp = (iso: string) => {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleString(undefined, {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return users;
