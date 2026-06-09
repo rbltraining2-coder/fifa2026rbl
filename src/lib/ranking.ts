@@ -120,14 +120,5 @@ export function sortAndRank<T>(
     if (pd !== 0) return pd;
     return compareTiebreakers(getUserId(a), getUserId(b), getName(a), getName(b), stats);
   });
-  let lastPts: number | null = null;
-  let lastRank = 0;
-  return sorted.map((r, i) => {
-    const p = getPoints(r);
-    if (p !== lastPts) {
-      lastRank = i + 1;
-      lastPts = p;
-    }
-    return { ...r, rank: lastRank };
-  });
+  return sorted.map((r, i) => ({ ...r, rank: i + 1 }));
 }
