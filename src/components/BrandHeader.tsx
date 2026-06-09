@@ -1,4 +1,4 @@
-import rblLogo from "@/assets/rbl-logo.png";
+import rblLogoAsset from "@/assets/new-rbl-logo.png.asset.json";
 import superdryAsset from "@/assets/superdry-logo.png.asset.json";
 
 export default function BrandHeader({
@@ -11,8 +11,8 @@ export default function BrandHeader({
   return (
     <div className="flex items-center gap-2.5">
       <img
-        src={rblLogo}
-        alt="RBL FIFA 2026 League"
+        src={rblLogoAsset.url}
+        alt="RBL World Cup League 2026"
         width={size}
         height={size}
         className="rounded-md object-contain"
