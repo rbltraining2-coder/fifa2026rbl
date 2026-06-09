@@ -129,6 +129,7 @@ function HomePage() {
                   <FeatureMatchCard
                     key={m.id}
                     match={m}
+                    featured={true}
                     alreadyPredicted={predicted.has(m.id)}
                     onPredict={() => setSheet(m)}
                   />
