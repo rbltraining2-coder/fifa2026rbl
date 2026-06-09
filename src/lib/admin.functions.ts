@@ -227,6 +227,8 @@ export type AdminUserRow = {
   brand_name: string | null;
   registered: boolean;
   last_login_at: string | null;
+  last_login?: string | null;
+  last_prediction?: { time: string; match_name: string } | null;
 };
 
 export const listAllUsers = createServerFn({ method: "POST" })
@@ -261,27 +263,60 @@ export const listAllUsers = createServerFn({ method: "POST" })
     ]);
 
     const regMap = new Map(registeredRows.map((r) => [r.employee_id, r]));
+
+    // Fetch latest prediction per user (with match info).
+    type PredRow = {
+      user_id: string;
+      created_at: string;
+      matches: { home_team: string; away_team: string } | null;
+    };
+    const latestPredByUser = new Map<string, { time: string; match_name: string }>();
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await supabaseAdmin
+        .from("predictions")
+        .select("user_id, created_at, matches(home_team, away_team)")
+        .order("created_at", { ascending: false })
+        .range(from, from + pageSize - 1);
+      if (error) throw new Error(error.message);
+      const rows = (data ?? []) as unknown as PredRow[];
+      for (const r of rows) {
+        if (latestPredByUser.has(r.user_id)) continue;
+        const m = r.matches;
+        latestPredByUser.set(r.user_id, {
+          time: r.created_at,
+          match_name: m ? `${m.home_team} vs ${m.away_team}` : "Unknown match",
+        });
+      }
+      if (rows.length < pageSize) break;
+    }
+
     const map = new Map<string, AdminUserRow>();
     for (const r of eligibleRows) {
+      const lastLogin = regMap.get(r.employee_id)?.last_login_at ?? null;
       map.set(r.employee_id, {
         employee_id: r.employee_id,
         name: r.name,
         date_of_birth: r.date_of_birth,
         brand_name: r.brand_name ?? regMap.get(r.employee_id)?.brand_name ?? null,
         registered: regMap.has(r.employee_id),
-        last_login_at: (regMap.get(r.employee_id) as any)?.last_login_at ?? null,
+        last_login_at: lastLogin,
+        last_login: lastLogin,
+        last_prediction: latestPredByUser.get(r.employee_id) ?? null,
       });
     }
     // Surface registered-only rows too (in case someone slipped into the roster).
     for (const r of registeredRows) {
       if (!map.has(r.employee_id)) {
+        const lastLogin = (r as any).last_login_at ?? null;
         map.set(r.employee_id, {
           employee_id: r.employee_id,
           name: r.name,
           date_of_birth: r.date_of_birth,
           brand_name: r.brand_name ?? null,
           registered: true,
-          last_login_at: (r as any).last_login_at ?? null,
+          last_login_at: lastLogin,
+          last_login: lastLogin,
+          last_prediction: latestPredByUser.get(r.employee_id) ?? null,
         });
       }
     }
