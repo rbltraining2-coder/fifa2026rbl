@@ -207,7 +207,7 @@ function RewardsPage() {
     <div className="space-y-5">
       <h1 className="text-xl font-black">Rewards</h1>
       <p className="text-sm text-muted-foreground">
-        Daily, weekly, monthly and season champions. Tied scores share the same rank.
+        Daily, weekly, monthly and season champions. Ties are broken by exact scores, correct winners, and prediction time.
       </p>
 
       <section

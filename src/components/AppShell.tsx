@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { Home, ListChecks, Trophy, Gift, User, ShieldCheck } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/lib/auth-context";
 import { compressAndUploadAvatar } from "@/lib/avatar";
 import { supabase } from "@/integrations/supabase/client";
@@ -96,7 +97,19 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1 mx-auto w-full max-w-2xl px-4 pb-28 pt-4">{children}</main>
+      <main className="flex-1 mx-auto w-full max-w-2xl px-4 pb-28 pt-4">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={loc.pathname}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
+      </main>
 
       <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-white/5 bg-[rgba(10,18,38,0.88)] backdrop-blur-xl">
         <div className="mx-auto max-w-2xl grid grid-cols-5">
