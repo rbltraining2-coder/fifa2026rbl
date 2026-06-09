@@ -77,7 +77,7 @@ export default function CinematicTransition({
           animate={{ opacity: 1, y: 0, letterSpacing: "0.2em" }}
           transition={{ duration: 0.9, delay: 0.5, ease: "easeOut" }}
         >
-          Welcome to the Arena
+          Welcome to the RBL World Cup League 2026
         </motion.h2>
 
         <motion.div

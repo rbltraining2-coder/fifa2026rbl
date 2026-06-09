@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Trophy, Calendar, CalendarDays, CalendarRange, Crown } from "lucide-react";
-import championBanner from "@/assets/champion-cup-banner.png";
+import championBannerAsset from "@/assets/rewards-champion-banner.png.asset.json";
 import { buildUserStatMap, sortAndRank } from "@/lib/ranking";
 import BrandLabel from "@/components/BrandLabel";
 
@@ -206,9 +206,6 @@ function RewardsPage() {
   return (
     <div className="space-y-5">
       <h1 className="text-xl font-black">Rewards</h1>
-      <p className="text-sm text-muted-foreground">
-        Daily, weekly, monthly and season champions. Ties are broken by exact scores, correct winners, and prediction time.
-      </p>
 
       <section
         aria-label="Champion Cup banner"
@@ -216,12 +213,23 @@ function RewardsPage() {
         style={{ boxShadow: "0 20px 60px -20px rgba(120,60,220,0.55)" }}
       >
         <img
-          src={championBanner}
-          alt="RBL FIFA 2026 League — Play. Predict. Win!"
-          className="w-full h-auto block"
+          src={championBannerAsset.url}
+          alt="RBL World Cup League 2026 — Play. Predict. Win!"
+          className="w-full h-auto block object-contain"
           loading="eager"
         />
       </section>
+
+      <div
+        className="w-full text-center rounded-xl px-4 py-3 text-xs sm:text-sm font-semibold tracking-wide text-white/90"
+        style={{
+          background: "linear-gradient(135deg, rgba(147,51,234,0.22), rgba(59,130,246,0.18))",
+          border: "1px solid rgba(167,139,250,0.35)",
+          boxShadow: "0 8px 24px -12px rgba(120,60,220,0.55)",
+        }}
+      >
+        🗓️ Rewards will be announced every <span className="text-[color:var(--primary-glow)]">Monday</span>.
+      </div>
 
       <div className="glossy-card p-1 inline-flex gap-1 w-full">
         {TABS.map(({ id, label, icon: Icon }) => (
