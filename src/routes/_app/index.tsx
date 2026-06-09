@@ -159,7 +159,7 @@ function HomePage() {
           <section>
             <h2 className="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
               <CalendarDays size={14} className="text-muted-foreground" />
-              Upcoming Fixtures
+              Upcoming Matches
             </h2>
             <ul className="space-y-2">
           {upcoming.map((m) => {
