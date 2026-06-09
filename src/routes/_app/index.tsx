@@ -9,7 +9,7 @@ import TeamFlag from "@/components/TeamFlag";
 import { Lock, CalendarDays, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { getPredictionWindow } from "@/lib/predictionWindow";
 import { formatIstDateTime, IST_LABEL } from "@/lib/ist";
-import promoBannerAsset from "@/assets/new-home-banner.png.asset.json";
+import promoBannerAsset from "@/assets/home-banner-v2.png.asset.json";
 
 export const Route = createFileRoute("/_app/")({
   head: () => ({

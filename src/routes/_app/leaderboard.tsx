@@ -174,8 +174,8 @@ function LeaderboardPage() {
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         <SummaryCard icon={<BarChart3 size={14} />} label="Matches Done" value={leaderboardData?.completedCount ?? 0} />
         <SummaryCard icon={<Users size={14} />} label="Predictions" value={leaderboardData?.totalPredictions ?? 0} />
-        <SummaryCard icon={<Crown size={14} />} label="Leader" value={leader?.name?.split(" ")[0] || "—"} sub={leader ? `${leader.total_points} pts` : ""} />
-        <SummaryCard icon={<Medal size={14} />} label="Your Rank" value={me ? `#${me.rank}` : "—"} sub={me ? `${me.total_points} pts` : ""} />
+        <SummaryCard icon={<Crown size={14} />} label="Leader" value={completedCount > 0 && leader ? (leader.name?.split(" ")[0] || "—") : "—"} sub={completedCount > 0 && leader ? `${leader.total_points} pts` : ""} />
+        <SummaryCard icon={<Medal size={14} />} label="Your Rank" value={completedCount > 0 && me ? `#${me.rank}` : "—"} sub={completedCount > 0 && me ? `${me.total_points} pts` : ""} />
       </section>
 
       <div className="glossy-card p-1 inline-flex gap-1 w-full">
