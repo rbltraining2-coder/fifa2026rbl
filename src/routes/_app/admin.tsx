@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Download, Trash2, Search, UserPlus } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Download, Trash2, Search, UserPlus, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
   importMatches,
@@ -600,6 +600,43 @@ function AdminPage() {
 
       {tab === "users" && (
         <div className="space-y-4">
+          {/* Registration overview */}
+          {(() => {
+            const users = usersQuery.data?.users ?? [];
+            const total = users.length;
+            const registeredCount = users.filter((u) => u.registered).length;
+            const pct = total > 0 ? Math.round((registeredCount / total) * 100) : 0;
+            return (
+              <section className="glossy-card p-5 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Users size={20} className="text-[var(--primary)] shrink-0" />
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold uppercase tracking-wider">Registration Overview</h3>
+                    {usersQuery.isLoading ? (
+                      <p className="text-sm text-muted-foreground mt-1">Loading…</p>
+                    ) : (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        <span className="text-2xl font-black text-foreground align-middle">{registeredCount}</span>
+                        <span className="align-middle"> / {total} registered</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {!usersQuery.isLoading && total > 0 && (
+                  <div className="hidden sm:flex flex-col items-end gap-2 w-48">
+                    <span className="text-xs text-muted-foreground">{pct}%</span>
+                    <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+                      <div
+                        className="h-full bg-[var(--primary)] transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </section>
+            );
+          })()}
+
           {/* Manual add */}
           <section className="glossy-card p-5 space-y-4">
             <div className="flex items-center gap-2">
