@@ -103,6 +103,8 @@ function AdminPage() {
   const listUsersFn = useServerFn(listAllUsers);
   const deleteUserFn = useServerFn(deleteUserEverywhere);
   const addMatchFn = useServerFn(addMatchManually);
+  const exportActivityFn = useServerFn(exportRosterActivity);
+  const [exportingActivity, setExportingActivity] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [filename, setFilename] = useState<string>("");
   const [busy, setBusy] = useState(false);
