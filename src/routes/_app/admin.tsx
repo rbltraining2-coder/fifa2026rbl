@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Download, Trash2, Search, UserPlus, Users } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Download, Trash2, Search, UserPlus, Users, Database } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
   importMatches,
@@ -15,6 +15,7 @@ import {
   listAllUsers,
   deleteUserEverywhere,
   addMatchManually,
+  checkDatabaseStorage,
 } from "@/lib/admin.functions";
 import {
   triggerScoreSync,
