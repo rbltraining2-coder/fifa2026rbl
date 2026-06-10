@@ -256,9 +256,9 @@ export const listAllUsers = createServerFn({ method: "POST" })
         "eligible_employees",
         "employee_id, name, date_of_birth, brand_name",
       ),
-      fetchAll<{ employee_id: string; name: string; date_of_birth: string; brand_name: string | null; last_login_at: string | null }>(
+      fetchAll<{ employee_id: string; name: string; date_of_birth: string; brand_name: string | null; last_login_at: string | null; created_at: string | null }>(
         "registered_users",
-        "employee_id, name, date_of_birth, brand_name, last_login_at",
+        "employee_id, name, date_of_birth, brand_name, last_login_at, created_at",
       ),
     ]);
 
@@ -292,13 +292,14 @@ export const listAllUsers = createServerFn({ method: "POST" })
 
     const map = new Map<string, AdminUserRow>();
     for (const r of eligibleRows) {
-      const lastLogin = regMap.get(r.employee_id)?.last_login_at ?? null;
+      const reg = regMap.get(r.employee_id);
+      const lastLogin = reg ? (reg.last_login_at ?? reg.created_at ?? null) : null;
       map.set(r.employee_id, {
         employee_id: r.employee_id,
         name: r.name,
         date_of_birth: r.date_of_birth,
-        brand_name: r.brand_name ?? regMap.get(r.employee_id)?.brand_name ?? null,
-        registered: regMap.has(r.employee_id),
+        brand_name: r.brand_name ?? reg?.brand_name ?? null,
+        registered: !!reg,
         last_login_at: lastLogin,
         last_login: lastLogin,
         last_prediction: latestPredByUser.get(r.employee_id) ?? null,
@@ -307,7 +308,7 @@ export const listAllUsers = createServerFn({ method: "POST" })
     // Surface registered-only rows too (in case someone slipped into the roster).
     for (const r of registeredRows) {
       if (!map.has(r.employee_id)) {
-        const lastLogin = (r as any).last_login_at ?? null;
+        const lastLogin = r.last_login_at ?? r.created_at ?? null;
         map.set(r.employee_id, {
           employee_id: r.employee_id,
           name: r.name,

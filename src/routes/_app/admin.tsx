@@ -977,15 +977,19 @@ function UserDirectory({
   setPage: (n: number) => void;
   onDelete: (id: string, name: string) => void;
 }) {
-  const formatStamp = (iso: string) => {
+  const formatStamp = (iso: string | null | undefined) => {
+    if (!iso) return "Never";
     const d = new Date(iso);
-    if (isNaN(d.getTime())) return iso;
-    return d.toLocaleString(undefined, {
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    if (isNaN(d.getTime())) return "Never";
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const day = pad(d.getDate());
+    const month = pad(d.getMonth() + 1);
+    const year = d.getFullYear();
+    let hours = d.getHours();
+    const minutes = pad(d.getMinutes());
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    return `${day}-${month}-${year}, ${pad(hours)}:${minutes} ${ampm}`;
   };
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
