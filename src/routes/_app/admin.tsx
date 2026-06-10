@@ -1150,6 +1150,63 @@ function AdminToolsPanel({ adminEmployeeId }: { adminEmployeeId: string }) {
         </div>
       </section>
 
+      {/* Storage utilization */}
+      <section className="glossy-card p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Database size={18} className="text-[var(--primary)]" />
+          <h3 className="text-sm font-bold uppercase tracking-wider">Storage Utilization</h3>
+        </div>
+        <button
+          type="button"
+          disabled={storageLoading}
+          onClick={async () => {
+            setStorageLoading(true);
+            try {
+              const r = await storageFn({ data: { adminEmployeeId } });
+              setStorage(r);
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Storage check failed");
+            } finally { setStorageLoading(false); }
+          }}
+          className="px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-white disabled:opacity-60"
+          style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow-primary)" }}
+        >
+          {storageLoading ? "Checking…" : "Check Database Storage"}
+        </button>
+        {storage && (() => {
+          const mb = (b: number) => (b / (1024 * 1024)).toFixed(2);
+          const pct = Math.min(100, (storage.usedBytes / storage.totalBytes) * 100);
+          const color = pct >= 90 ? "#ef4444" : pct >= 70 ? "#eab308" : "#22c55e";
+          return (
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="rounded-xl border border-white/10 p-3">
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Used</div>
+                  <div className="text-lg font-black">{mb(storage.usedBytes)} MB</div>
+                </div>
+                <div className="rounded-xl border border-white/10 p-3">
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Total</div>
+                  <div className="text-lg font-black">{mb(storage.totalBytes)} MB</div>
+                </div>
+                <div className="rounded-xl border border-white/10 p-3">
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Available</div>
+                  <div className="text-lg font-black">{mb(storage.availableBytes)} MB</div>
+                </div>
+              </div>
+              <div className="h-3 w-full rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full transition-all"
+                  style={{ width: `${pct}%`, background: color, boxShadow: `0 0 12px ${color}66` }}
+                />
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {pct.toFixed(2)}% used of Free Tier limit (500 MB)
+              </div>
+            </div>
+          );
+        })()}
+      </section>
+
       {/* Match editor */}
       <section className="glossy-card p-5 space-y-4">
         <div className="flex items-center justify-between">
