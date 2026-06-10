@@ -1058,6 +1058,9 @@ function AdminToolsPanel({ adminEmployeeId }: { adminEmployeeId: string }) {
   const qc = useQueryClient();
   const syncFn = useServerFn(triggerScoreSync);
   const recalcFn = useServerFn(recalculateLeaderboard);
+  const storageFn = useServerFn(checkDatabaseStorage);
+  const [storageLoading, setStorageLoading] = useState(false);
+  const [storage, setStorage] = useState<{ usedBytes: number; totalBytes: number; availableBytes: number } | null>(null);
   const completeFn = useServerFn(completeMatchManually);
   const updateScoresFn = useServerFn(updateMatchScores);
   const listMatchesFn = useServerFn(listMatchesForAdmin);
