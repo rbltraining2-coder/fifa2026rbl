@@ -440,7 +440,7 @@ export const exportRosterActivity = createServerFn({ method: "POST" })
       ),
       fetchAll<{ id: string; employee_id: string; last_login_at: string | null; name: string; date_of_birth: string; brand_name: string | null }>(
         "registered_users",
-        "id, employee_id, last_login_at, name, date_of_birth, brand_name",
+        "id, employee_id, last_login_at, created_at, name, date_of_birth, brand_name",
       ),
       fetchAll<{ user_id: string; created_at: string }>(
         "predictions",
@@ -457,34 +457,50 @@ export const exportRosterActivity = createServerFn({ method: "POST" })
       }
     }
 
-    const regByEmpId = new Map(registeredRows.map((r) => [r.employee_id, r]));
-    const fmt = (iso: string | null | undefined) =>
-      iso ? new Date(iso).toISOString() : "Never";
+    const regByEmpId = new Map(
+      registeredRows.map((r) => [r.employee_id, r as typeof r & { created_at?: string | null }]),
+    );
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const fmt = (iso: string | null | undefined) => {
+      if (!iso) return "Never";
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return "Never";
+      const day = pad(d.getDate());
+      const month = pad(d.getMonth() + 1);
+      const year = d.getFullYear();
+      let hours = d.getHours();
+      const minutes = pad(d.getMinutes());
+      const ampm = hours >= 12 ? "PM" : "AM";
+      hours = hours % 12 || 12;
+      return `${day}-${month}-${year}, ${pad(hours)}:${minutes} ${ampm}`;
+    };
 
     const map = new Map<string, RosterActivityRow>();
     for (const e of eligibleRows) {
       const reg = regByEmpId.get(e.employee_id);
       const lastPred = reg ? latestPredByUserId.get(reg.id) ?? null : null;
+      const loginTime = reg ? (reg.last_login_at ?? (reg as any).created_at ?? null) : null;
       map.set(e.employee_id, {
         "Employee ID": e.employee_id,
         Name: e.name,
         Brand: e.brand_name ?? reg?.brand_name ?? "",
         DOB: e.date_of_birth,
         Status: reg ? "Registered" : "Not Registered",
-        "Last Login": fmt(reg?.last_login_at ?? null),
+        "Last Login": fmt(loginTime),
         "Last Prediction": fmt(lastPred),
       });
     }
     for (const r of registeredRows) {
       if (map.has(r.employee_id)) continue;
       const lastPred = latestPredByUserId.get(r.id) ?? null;
+      const loginTime = r.last_login_at ?? (r as any).created_at ?? null;
       map.set(r.employee_id, {
         "Employee ID": r.employee_id,
         Name: r.name,
         Brand: r.brand_name ?? "",
         DOB: r.date_of_birth,
         Status: "Registered",
-        "Last Login": fmt(r.last_login_at),
+        "Last Login": fmt(loginTime),
         "Last Prediction": fmt(lastPred),
       });
     }
