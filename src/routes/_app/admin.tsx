@@ -981,15 +981,18 @@ function UserDirectory({
     if (!iso) return "Never";
     const d = new Date(iso);
     if (isNaN(d.getTime())) return "Never";
-    const pad = (n: number) => n.toString().padStart(2, "0");
-    const day = pad(d.getDate());
-    const month = pad(d.getMonth() + 1);
-    const year = d.getFullYear();
-    let hours = d.getHours();
-    const minutes = pad(d.getMinutes());
-    const ampm = hours >= 12 ? "PM" : "AM";
-    hours = hours % 12 || 12;
-    return `${day}-${month}-${year}, ${pad(hours)}:${minutes} ${ampm}`;
+    const formatted = d.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+    return formatted
+      .replace(/\//g, "-")
+      .replace(/\s?(am|pm)$/i, (_, p) => ` ${p.toUpperCase()}`);
   };
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
