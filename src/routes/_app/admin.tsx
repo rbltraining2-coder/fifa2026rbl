@@ -16,6 +16,7 @@ import {
   deleteUserEverywhere,
   addMatchManually,
   checkDatabaseStorage,
+  exportRosterActivity,
 } from "@/lib/admin.functions";
 import {
   triggerScoreSync,
