@@ -381,3 +381,20 @@ export const addMatchManually = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true, id: inserted?.id };
   });
+
+const storageSchema = z.object({
+  adminEmployeeId: z.string().min(1).max(32).regex(/^[A-Za-z0-9_-]+$/),
+});
+
+export const checkDatabaseStorage = createServerFn({ method: "POST" })
+  .inputValidator((d) => storageSchema.parse(d))
+  .handler(async ({ data }) => {
+    await assertAdmin(data.adminEmployeeId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: bytes, error } = await supabaseAdmin.rpc("get_db_size_bytes");
+    if (error) throw new Error(error.message);
+    const usedBytes = Number(bytes ?? 0);
+    const totalBytes = 500 * 1024 * 1024;
+    const availableBytes = Math.max(0, totalBytes - usedBytes);
+    return { usedBytes, totalBytes, availableBytes };
+  });
