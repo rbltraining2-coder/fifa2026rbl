@@ -16,6 +16,7 @@ import {
   deleteUserEverywhere,
   addMatchManually,
   checkDatabaseStorage,
+  exportRosterActivity,
 } from "@/lib/admin.functions";
 import {
   triggerScoreSync,
@@ -102,6 +103,8 @@ function AdminPage() {
   const listUsersFn = useServerFn(listAllUsers);
   const deleteUserFn = useServerFn(deleteUserEverywhere);
   const addMatchFn = useServerFn(addMatchManually);
+  const exportActivityFn = useServerFn(exportRosterActivity);
+  const [exportingActivity, setExportingActivity] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [filename, setFilename] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -805,6 +808,50 @@ function AdminPage() {
                 }
               }}
             />
+          </section>
+
+          {/* Activity Report Export */}
+          <section className="glossy-card p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <Download size={18} className="text-[var(--primary)]" />
+              <h3 className="text-sm font-bold uppercase tracking-wider">User Activity Report</h3>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Download a full CSV of every roster member with registration status, last login, and last prediction timestamp.
+            </p>
+            <button
+              type="button"
+              disabled={exportingActivity}
+              onClick={async () => {
+                if (!profile) return;
+                setExportingActivity(true);
+                try {
+                  const { rows } = await exportActivityFn({
+                    data: { adminEmployeeId: profile.employee_id },
+                  });
+                  const csv = Papa.unparse(rows);
+                  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = "goal_gurus_activity_report.csv";
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                  toast.success(`Exported ${rows.length} rows.`);
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Export failed");
+                } finally {
+                  setExportingActivity(false);
+                }
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider disabled:opacity-60"
+              style={{ background: "var(--gradient-primary)", color: "#fff" }}
+            >
+              <Download size={14} />
+              {exportingActivity ? "Preparing…" : "Download Full Activity Report"}
+            </button>
           </section>
         </div>
       )}

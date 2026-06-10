@@ -257,6 +257,7 @@ export type Database = {
           employee_id: string
           id: string
           is_admin: boolean
+          last_login: string | null
           last_login_at: string | null
           name: string
           rank: number | null
@@ -271,6 +272,7 @@ export type Database = {
           employee_id: string
           id?: string
           is_admin?: boolean
+          last_login?: string | null
           last_login_at?: string | null
           name: string
           rank?: number | null
@@ -285,6 +287,7 @@ export type Database = {
           employee_id?: string
           id?: string
           is_admin?: boolean
+          last_login?: string | null
           last_login_at?: string | null
           name?: string
           rank?: number | null

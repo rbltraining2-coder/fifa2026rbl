@@ -398,3 +398,98 @@ export const checkDatabaseStorage = createServerFn({ method: "POST" })
     const availableBytes = Math.max(0, totalBytes - usedBytes);
     return { usedBytes, totalBytes, availableBytes };
   });
+
+export type RosterActivityRow = {
+  "Employee ID": string;
+  Name: string;
+  Brand: string;
+  DOB: string;
+  Status: "Registered" | "Not Registered";
+  "Last Login": string;
+  "Last Prediction": string;
+};
+
+export const exportRosterActivity = createServerFn({ method: "POST" })
+  .inputValidator((d) => listSchema.parse(d))
+  .handler(async ({ data }): Promise<{ rows: RosterActivityRow[] }> => {
+    await assertAdmin(data.adminEmployeeId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const pageSize = 1000;
+    async function fetchAll<T>(
+      table: "eligible_employees" | "registered_users" | "predictions",
+      columns: string,
+    ): Promise<T[]> {
+      const all: T[] = [];
+      for (let from = 0; ; from += pageSize) {
+        const { data, error } = await supabaseAdmin
+          .from(table)
+          .select(columns)
+          .range(from, from + pageSize - 1);
+        if (error) throw new Error(error.message);
+        const rows = (data ?? []) as T[];
+        all.push(...rows);
+        if (rows.length < pageSize) break;
+      }
+      return all;
+    }
+
+    const [eligibleRows, registeredRows, predictionRows] = await Promise.all([
+      fetchAll<{ employee_id: string; name: string; date_of_birth: string; brand_name: string | null }>(
+        "eligible_employees",
+        "employee_id, name, date_of_birth, brand_name",
+      ),
+      fetchAll<{ id: string; employee_id: string; last_login_at: string | null; name: string; date_of_birth: string; brand_name: string | null }>(
+        "registered_users",
+        "id, employee_id, last_login_at, name, date_of_birth, brand_name",
+      ),
+      fetchAll<{ user_id: string; created_at: string }>(
+        "predictions",
+        "user_id, created_at",
+      ),
+    ]);
+
+    // latest prediction per user_id (registered_users.id)
+    const latestPredByUserId = new Map<string, string>();
+    for (const p of predictionRows) {
+      const prev = latestPredByUserId.get(p.user_id);
+      if (!prev || new Date(p.created_at).getTime() > new Date(prev).getTime()) {
+        latestPredByUserId.set(p.user_id, p.created_at);
+      }
+    }
+
+    const regByEmpId = new Map(registeredRows.map((r) => [r.employee_id, r]));
+    const fmt = (iso: string | null | undefined) =>
+      iso ? new Date(iso).toISOString() : "Never";
+
+    const map = new Map<string, RosterActivityRow>();
+    for (const e of eligibleRows) {
+      const reg = regByEmpId.get(e.employee_id);
+      const lastPred = reg ? latestPredByUserId.get(reg.id) ?? null : null;
+      map.set(e.employee_id, {
+        "Employee ID": e.employee_id,
+        Name: e.name,
+        Brand: e.brand_name ?? reg?.brand_name ?? "",
+        DOB: e.date_of_birth,
+        Status: reg ? "Registered" : "Not Registered",
+        "Last Login": fmt(reg?.last_login_at ?? null),
+        "Last Prediction": fmt(lastPred),
+      });
+    }
+    for (const r of registeredRows) {
+      if (map.has(r.employee_id)) continue;
+      const lastPred = latestPredByUserId.get(r.id) ?? null;
+      map.set(r.employee_id, {
+        "Employee ID": r.employee_id,
+        Name: r.name,
+        Brand: r.brand_name ?? "",
+        DOB: r.date_of_birth,
+        Status: "Registered",
+        "Last Login": fmt(r.last_login_at),
+        "Last Prediction": fmt(lastPred),
+      });
+    }
+    const rows = Array.from(map.values()).sort((a, b) =>
+      a.Name.localeCompare(b.Name),
+    );
+    return { rows };
+  });
