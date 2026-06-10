@@ -97,6 +97,7 @@ export const completeRegistration = createServerFn({ method: "POST" })
         avatar_url: data.avatarUrl ?? null,
         brand_name: emp.brand_name ?? null,
         is_admin: code === "50161635",
+        last_login_at: new Date().toISOString(),
       })
       .select("id, employee_id, name, avatar_url, total_points, rank, is_admin, brand_name")
       .single();
