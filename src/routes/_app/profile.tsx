@@ -116,7 +116,7 @@ function ProfilePage() {
 
       <section className="grid grid-cols-3 gap-3">
         <Stat label="Total Points" value={profile?.total_points ?? 0} accent="var(--success)" />
-        <Stat label="Rank" value={stats ? `#${stats.rank}` : "—"} accent="var(--primary-glow)" />
+        <Stat label="Rank" value={stats && stats.matches > 0 ? `#${stats.rank}` : "—"} accent="var(--primary-glow)" />
         <Stat label="Played" value={stats?.matches ?? 0} accent="#D1D4D1" />
       </section>
 
