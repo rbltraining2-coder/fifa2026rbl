@@ -226,7 +226,7 @@ function RewardsPage() {
           boxShadow: "0 8px 24px -12px rgba(120,60,220,0.55)",
         }}
       >
-        🗓️ Rewards will be announced every <span className="font-black text-yellow-300" style={{ textShadow: "0 0 12px rgba(253,224,71,0.55)" }}>Monday</span>.
+        🗓️ Weekly Rewards will be announced every <span className="font-black text-yellow-300" style={{ textShadow: "0 0 12px rgba(253,224,71,0.55)" }}>Monday</span>.
       </div>
 
       <div className="glossy-card p-1 inline-flex gap-1 w-full">
@@ -284,7 +284,10 @@ function RewardsPage() {
                           border: "1px solid rgba(245,215,110,0.35)",
                         }}
                       >
-                        <Crown size={18} className="text-yellow-300 shrink-0" />
+                        <div className="flex flex-col items-center justify-center shrink-0 w-8">
+                          <Crown size={18} className="text-yellow-300" />
+                          <span className="text-[9px] font-black text-yellow-300 mt-0.5 tracking-wider">1ST</span>
+                        </div>
                         <Avatar url={u?.avatar_url ?? null} fallback={u?.name ?? w.user_id} />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-black truncate">
@@ -315,7 +318,9 @@ function RewardsPage() {
                         key={r.id}
                         className={`flex items-center gap-3 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/5 ${mine ? "rank-mine" : ""}`}
                       >
-                        <span className="w-6 text-center text-xs font-black text-muted-foreground tabular-nums">#{r.rank}</span>
+                        <span className="w-8 text-center text-xs font-black text-muted-foreground tabular-nums">
+                          {r.rank === 2 ? "2nd" : r.rank === 3 ? "3rd" : `${r.rank}th`}
+                        </span>
                         <Avatar url={u?.avatar_url ?? null} fallback={u?.name ?? r.user_id} small />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-bold truncate">
