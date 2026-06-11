@@ -443,18 +443,22 @@ export const exportRosterActivity = createServerFn({ method: "POST" })
         "registered_users",
         "id, employee_id, last_login_at, created_at, name, date_of_birth, brand_name",
       ),
-      fetchAll<{ user_id: string; created_at: string }>(
+      fetchAll<{ user_id: string; created_at: string; matches: { home_team: string; away_team: string } | null }>(
         "predictions",
-        "user_id, created_at",
+        "user_id, created_at, matches(home_team, away_team)",
       ),
     ]);
 
     // latest prediction per user_id (registered_users.id)
-    const latestPredByUserId = new Map<string, string>();
+    const latestPredByUserId = new Map<string, { time: string; match_name: string }>();
     for (const p of predictionRows) {
       const prev = latestPredByUserId.get(p.user_id);
-      if (!prev || new Date(p.created_at).getTime() > new Date(prev).getTime()) {
-        latestPredByUserId.set(p.user_id, p.created_at);
+      if (!prev || new Date(p.created_at).getTime() > new Date(prev.time).getTime()) {
+        const m = p.matches;
+        latestPredByUserId.set(p.user_id, {
+          time: p.created_at,
+          match_name: m ? `${m.home_team} vs ${m.away_team}` : "Unknown match",
+        });
       }
     }
 
@@ -479,6 +483,12 @@ export const exportRosterActivity = createServerFn({ method: "POST" })
         .replace(/\//g, "-")
         .replace(/\s?(am|pm)$/i, (_, p) => ` ${p.toUpperCase()}`);
     };
+    const fmtPred = (pred: { time: string; match_name: string } | null | undefined) => {
+      if (!pred) return "Never";
+      const timeStr = fmt(pred.time);
+      if (timeStr === "Never") return "Never";
+      return `${timeStr} ${pred.match_name}`;
+    };
 
     const map = new Map<string, RosterActivityRow>();
     for (const e of eligibleRows) {
@@ -492,7 +502,7 @@ export const exportRosterActivity = createServerFn({ method: "POST" })
         DOB: e.date_of_birth,
         Status: reg ? "Registered" : "Not Registered",
         "Last Login": fmt(loginTime),
-        "Last Prediction": fmt(lastPred),
+        "Last Prediction": fmtPred(lastPred),
       });
     }
     for (const r of registeredRows) {
@@ -506,7 +516,7 @@ export const exportRosterActivity = createServerFn({ method: "POST" })
         DOB: r.date_of_birth,
         Status: "Registered",
         "Last Login": fmt(loginTime),
-        "Last Prediction": fmt(lastPred),
+        "Last Prediction": fmtPred(lastPred),
       });
     }
     const rows = Array.from(map.values()).sort((a, b) =>
