@@ -417,7 +417,7 @@ export const exportRosterActivity = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const pageSize = 1000;
     async function fetchAll<T>(
-      table: "eligible_employees" | "registered_users" | "predictions",
+      table: "eligible_employees" | "registered_users",
       columns: string,
     ): Promise<T[]> {
       const all: T[] = [];
@@ -434,28 +434,40 @@ export const exportRosterActivity = createServerFn({ method: "POST" })
       return all;
     }
 
-    const [eligibleRows, registeredRows, predictionRows] = await Promise.all([
+    const [eligibleRows, registeredRows] = await Promise.all([
       fetchAll<{ employee_id: string; name: string; date_of_birth: string; brand_name: string | null }>(
         "eligible_employees",
         "employee_id, name, date_of_birth, brand_name",
       ),
-      fetchAll<{ id: string; employee_id: string; last_login_at: string | null; name: string; date_of_birth: string; brand_name: string | null }>(
+      fetchAll<{ id: string; employee_id: string; last_login_at: string | null; created_at: string | null; name: string; date_of_birth: string; brand_name: string | null }>(
         "registered_users",
         "id, employee_id, last_login_at, created_at, name, date_of_birth, brand_name",
       ),
-      fetchAll<{ user_id: string; created_at: string; matches: { home_team: string; away_team: string } | null }>(
-        "predictions",
-        "user_id, created_at, matches(home_team, away_team)",
-      ),
     ]);
 
-    // latest prediction per user_id (registered_users.id)
+    // Fetch predictions explicitly ordered by created_at desc so we don't skip rows during pagination
+    type PredRow = { user_id: string; created_at: string; matches: { home_team: string; away_team: string } | null };
+    const predictionRows: PredRow[] = [];
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await supabaseAdmin
+        .from("predictions")
+        .select("user_id, created_at, matches(home_team, away_team)")
+        .order("created_at", { ascending: false })
+        .range(from, from + pageSize - 1);
+      if (error) throw new Error(error.message);
+      const rows = (data ?? []) as unknown as PredRow[];
+      predictionRows.push(...rows);
+      if (rows.length < pageSize) break;
+    }
+
+    // latest prediction per user_id (employee_id)
     const latestPredByUserId = new Map<string, { time: string; match_name: string }>();
     for (const p of predictionRows) {
-      const prev = latestPredByUserId.get(p.user_id);
+      const uId = String(p.user_id).trim().toUpperCase();
+      const prev = latestPredByUserId.get(uId);
       if (!prev || new Date(p.created_at).getTime() > new Date(prev.time).getTime()) {
         const m = p.matches;
-        latestPredByUserId.set(p.user_id, {
+        latestPredByUserId.set(uId, {
           time: p.created_at,
           match_name: m ? `${m.home_team} vs ${m.away_team}` : "Unknown match",
         });
@@ -463,7 +475,7 @@ export const exportRosterActivity = createServerFn({ method: "POST" })
     }
 
     const regByEmpId = new Map(
-      registeredRows.map((r) => [r.employee_id, r as typeof r & { created_at?: string | null }]),
+      registeredRows.map((r) => [String(r.employee_id).trim().toUpperCase(), r as typeof r & { created_at?: string | null }]),
     );
     const fmt = (iso: string | null | undefined) => {
       if (!iso) return "Never";
@@ -478,11 +490,11 @@ export const exportRosterActivity = createServerFn({ method: "POST" })
         minute: "2-digit",
         hour12: true,
       });
-      // en-IN returns e.g. "09/06/2026, 02:40 pm" — normalize to "DD-MM-YYYY, hh:mm AM/PM"
       return formatted
         .replace(/\//g, "-")
         .replace(/\s?(am|pm)$/i, (_, p) => ` ${p.toUpperCase()}`);
     };
+
     const fmtPred = (pred: { time: string; match_name: string } | null | undefined) => {
       if (!pred) return "Never";
       const timeStr = fmt(pred.time);
@@ -492,10 +504,11 @@ export const exportRosterActivity = createServerFn({ method: "POST" })
 
     const map = new Map<string, RosterActivityRow>();
     for (const e of eligibleRows) {
-      const reg = regByEmpId.get(e.employee_id);
-      const lastPred = reg ? latestPredByUserId.get(reg.id) ?? null : null;
+      const empIdNorm = String(e.employee_id).trim().toUpperCase();
+      const reg = regByEmpId.get(empIdNorm);
+      const lastPred = latestPredByUserId.get(empIdNorm) ?? null;
       const loginTime = reg ? (reg.last_login_at ?? (reg as any).created_at ?? null) : null;
-      map.set(e.employee_id, {
+      map.set(empIdNorm, {
         "Employee ID": e.employee_id,
         Name: e.name,
         Brand: e.brand_name ?? reg?.brand_name ?? "",
@@ -506,10 +519,11 @@ export const exportRosterActivity = createServerFn({ method: "POST" })
       });
     }
     for (const r of registeredRows) {
-      if (map.has(r.employee_id)) continue;
-      const lastPred = latestPredByUserId.get(r.id) ?? null;
+      const empIdNorm = String(r.employee_id).trim().toUpperCase();
+      if (map.has(empIdNorm)) continue;
+      const lastPred = latestPredByUserId.get(empIdNorm) ?? null;
       const loginTime = r.last_login_at ?? (r as any).created_at ?? null;
-      map.set(r.employee_id, {
+      map.set(empIdNorm, {
         "Employee ID": r.employee_id,
         Name: r.name,
         Brand: r.brand_name ?? "",
