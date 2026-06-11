@@ -196,6 +196,19 @@ function HomePage() {
                     Submitted
                   </span>
                 )}
+                {!isPredicted && w.state === "open" && (
+                  <span
+                    className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-md"
+                    style={{
+                      color: "#10b981",
+                      border: "1px solid #10b981",
+                      boxShadow: "0 0 10px rgba(16, 185, 129, 0.6), inset 0 0 4px rgba(16, 185, 129, 0.2)",
+                      backgroundColor: "rgba(16, 185, 129, 0.05)"
+                    }}
+                  >
+                    Predict Now
+                  </span>
+                )}
               </li>
             );
           })}
