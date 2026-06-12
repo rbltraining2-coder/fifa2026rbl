@@ -97,7 +97,7 @@ export const completeRegistration = createServerFn({ method: "POST" })
       .insert({
         employee_id: code,
         name: emp.name,
-        date_of_birth: emp.date_of_birth ? normalizeDob(emp.date_of_birth) : null,
+        date_of_birth: emp.date_of_birth ? (normalizeDob(emp.date_of_birth) ?? emp.date_of_birth) : entered,
         date_of_joining: entered,
         avatar_url: data.avatarUrl ?? null,
         brand_name: emp.brand_name ?? null,
