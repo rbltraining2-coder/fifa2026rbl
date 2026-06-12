@@ -74,21 +74,28 @@ function LeaderboardPage() {
   const { data: leaderboardData, isLoading } = useQuery({
     queryKey: ["leaderboard", "overall-completed-aggregate"],
     queryFn: async () => {
-      const [{ data: matches, error: mErr }, { data: users, error: uErr }] = await Promise.all([
-        supabase
-          .from("matches")
-          .select("id")
-          .eq("status", "completed")
-          .not("home_score", "is", null)
-          .not("away_score", "is", null)
-          .limit(1000),
-        supabase
-        .from("registered_users")
-        .select("id, employee_id, name, avatar_url, total_points, brand_name")
-          .limit(500),
-      ]);
+      const { data: matches, error: mErr } = await supabase
+        .from("matches")
+        .select("id")
+        .eq("status", "completed")
+        .not("home_score", "is", null)
+        .not("away_score", "is", null)
+        .limit(1000);
       if (mErr) throw mErr;
-      if (uErr) throw uErr;
+
+      const users: Pick<Row, "id" | "employee_id" | "name" | "avatar_url" | "total_points" | "brand_name">[] = [];
+      {
+        const pageSize = 1000;
+        for (let from = 0; ; from += pageSize) {
+          const { data, error } = await supabase
+            .from("registered_users")
+            .select("id, employee_id, name, avatar_url, total_points, brand_name")
+            .range(from, from + pageSize - 1);
+          if (error) throw error;
+          users.push(...((data ?? []) as typeof users));
+          if ((data ?? []).length < pageSize) break;
+        }
+      }
 
       const completedIds = new Set((matches ?? []).map((m) => m.id as string));
       const preds: PredictionAggregateRow[] = [];
@@ -350,25 +357,34 @@ function MatchLeaderboardList({ currentUserId }: MatchLeaderboardListProps) {
       const list = (matches ?? []) as CompletedMatch[];
       const ids = list.map((m) => m.id);
       if (ids.length === 0) return [];
-      const { data: preds, error: pErr } = (await supabase
-        .from("predictions")
-        .select(`
-          id,
-          match_id,
-          user_id,
-          points_earned,
-          created_at,
-          predicted_home_score,
-          predicted_away_score,
-          registered_users (
-            name,
-            avatar_url,
-            brand_name
-          )
-        `)
-        .in("match_id", ids)) as any;
-      if (pErr) throw pErr;
-      const predsList = (preds ?? []) as any[];
+      const predsList: any[] = [];
+      {
+        const pageSize = 1000;
+        for (let from = 0; ; from += pageSize) {
+          const { data, error } = (await supabase
+            .from("predictions")
+            .select(`
+              id,
+              match_id,
+              user_id,
+              points_earned,
+              created_at,
+              predicted_home_score,
+              predicted_away_score,
+              registered_users (
+                name,
+                avatar_url,
+                brand_name
+              )
+            `)
+            .in("match_id", ids)
+            .range(from, from + pageSize - 1)) as any;
+          if (error) throw error;
+          const batch = (data ?? []) as any[];
+          predsList.push(...batch);
+          if (batch.length < pageSize) break;
+        }
+      }
       const matchPredsMap = new Map<string, any[]>();
       for (const p of predsList) {
         const arr = matchPredsMap.get(p.match_id) ?? [];
