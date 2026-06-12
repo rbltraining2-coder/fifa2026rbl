@@ -55,7 +55,7 @@ const CSV_TEMPLATE =
   "France,Germany,2026-06-11T21:00:00Z,Group Stage\n";
 
 const USERS_CSV_TEMPLATE =
-  "employee_id,date_of_birth,name,brand_name\n" +
+  "employee_id,date_of_joining,name,brand_name\n" +
   "99999999,01/01/1990,John Doe,GAS\n";
 
 export const Route = createFileRoute("/_app/admin")({
@@ -286,14 +286,14 @@ function AdminPage() {
           };
           return {
             employee_id: get("employee_id", 0),
-            date_of_birth: get("date_of_birth", 1),
+            date_of_birth: get("date_of_joining", 1),
             name: get("name", 2),
             brand_name: get("brand_name", 3) || null,
           };
         })
         .filter((e) => e.employee_id && e.date_of_birth && e.name);
       if (employees.length === 0) {
-        toast.error("No valid rows. Expected columns: employee_id, date_of_birth, name.");
+        toast.error("No valid rows. Expected columns: employee_id, date_of_joining, name.");
         return;
       }
       const chunkSize = 100;
@@ -663,7 +663,7 @@ function AdminPage() {
               <input
                 value={manual.date_of_birth}
                 onChange={(e) => setManual((m) => ({ ...m, date_of_birth: e.target.value }))}
-                placeholder="DOB (DD/MM/YYYY)"
+                placeholder="Date of Joining (DD/MM/YYYY)"
                 className="rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[var(--primary)] outline-none"
               />
               <input
@@ -750,7 +750,7 @@ function AdminPage() {
               {userBusy ? "Importing…" : "Upload Master Roster (CSV Format)"}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Columns: employee_id, date_of_birth (DD/MM/YYYY), name, brand_name (optional).
+              Columns: employee_id, date_of_joining (DD/MM/YYYY), name, brand_name (optional).
             </p>
             <input
               ref={userInputRef}

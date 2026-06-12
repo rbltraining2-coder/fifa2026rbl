@@ -21,9 +21,9 @@ export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       { title: "Sign in — Goal Gurus" },
-      { name: "description", content: "Sign in to the Goal Gurus RBL World Cup League 2026 with your employee code and date of birth." },
+      { name: "description", content: "Sign in to the Goal Gurus RBL World Cup League 2026 with your employee code and date of joining." },
       { property: "og:title", content: "Sign in — Goal Gurus" },
-      { property: "og:description", content: "Sign in to the Goal Gurus RBL World Cup League 2026 with your employee code and date of birth." },
+      { property: "og:description", content: "Sign in to the Goal Gurus RBL World Cup League 2026 with your employee code and date of joining." },
       { property: "og:url", content: "https://fifa2026rbl.lovable.app/login" },
     ],
     links: [{ rel: "canonical", href: "https://fifa2026rbl.lovable.app/login" }],
@@ -197,7 +197,7 @@ function LoginPage() {
                 />
               </label>
               <label className="block">
-                <span className="text-xs uppercase tracking-widest text-muted-foreground">Date of Birth</span>
+                <span className="text-xs uppercase tracking-widest text-muted-foreground">Date of Joining</span>
                 <DobInput value={dob} onChange={setDob} />
                 <span className="mt-1 block text-[10px] text-muted-foreground/70">Type DD/MM/YYYY or tap the calendar</span>
               </label>
@@ -208,7 +208,7 @@ function LoginPage() {
               </button>
               <p className="text-xs text-center text-muted-foreground">
                 {mode === "login"
-                  ? "Use your employee ID and date of birth to sign in."
+                  ? "Use your employee ID and date of joining to sign in."
                   : "New here? We'll verify you against the corporate roster."}
               </p>
             </form>
