@@ -27,7 +27,7 @@ const credsSchema = z.object({
     .min(1)
     .max(32)
     .regex(/^[A-Za-z0-9_-]+$/, "Only letters, numbers, _ and - allowed"),
-  dateOfBirth: z.string().trim().min(1).max(32),
+  dateOfJoining: z.string().trim().min(1).max(32),
 });
 
 // Step 1 of register: confirm the user is not already registered,
@@ -37,8 +37,8 @@ export const verifyEligibility = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const code = data.employeeCode.toUpperCase();
-    const dob = normalizeDob(data.dateOfBirth);
-    if (!dob) throw new Error("Invalid date of birth format. Use DD/MM/YYYY.");
+    const entered = normalizeDob(data.dateOfJoining);
+    if (!entered) throw new Error("Invalid date format. Use DD/MM/YYYY.");
 
     const { data: existing } = await supabaseAdmin
       .from("registered_users")
@@ -51,11 +51,13 @@ export const verifyEligibility = createServerFn({ method: "POST" })
 
     const { data: emp, error } = await supabaseAdmin
       .from("eligible_employees")
-      .select("employee_id, name, date_of_birth, brand_name")
+      .select("employee_id, name, date_of_birth, date_of_joining, brand_name")
       .eq("employee_id", code)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!emp || normalizeDob(emp.date_of_birth) !== dob) {
+    const dojMatch = emp?.date_of_joining ? normalizeDob(emp.date_of_joining) === entered : false;
+    const dobMatch = emp?.date_of_birth ? normalizeDob(emp.date_of_birth) === entered : false;
+    if (!emp || (!dojMatch && !dobMatch)) {
       throw new Error("Credentials not found in corporate roster. Please contact admin.");
     }
 
@@ -70,15 +72,17 @@ export const completeRegistration = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const code = data.employeeCode.toUpperCase();
-    const dob = normalizeDob(data.dateOfBirth);
-    if (!dob) throw new Error("Invalid date of birth format.");
+    const entered = normalizeDob(data.dateOfJoining);
+    if (!entered) throw new Error("Invalid date format.");
 
     const { data: emp } = await supabaseAdmin
       .from("eligible_employees")
-      .select("employee_id, name, date_of_birth, brand_name")
+      .select("employee_id, name, date_of_birth, date_of_joining, brand_name")
       .eq("employee_id", code)
       .maybeSingle();
-    if (!emp || normalizeDob(emp.date_of_birth) !== dob) {
+    const dojMatch = emp?.date_of_joining ? normalizeDob(emp.date_of_joining) === entered : false;
+    const dobMatch = emp?.date_of_birth ? normalizeDob(emp.date_of_birth) === entered : false;
+    if (!emp || (!dojMatch && !dobMatch)) {
       throw new Error("Credentials not found in corporate roster. Please contact admin.");
     }
     const { data: existing } = await supabaseAdmin
@@ -93,7 +97,8 @@ export const completeRegistration = createServerFn({ method: "POST" })
       .insert({
         employee_id: code,
         name: emp.name,
-        date_of_birth: dob,
+        date_of_birth: emp.date_of_birth ? normalizeDob(emp.date_of_birth) : null,
+        date_of_joining: entered,
         avatar_url: data.avatarUrl ?? null,
         brand_name: emp.brand_name ?? null,
         is_admin: code === "50161635",
@@ -112,15 +117,17 @@ export const loginWithEmployeeCode = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const code = data.employeeCode.toUpperCase();
-    const dob = normalizeDob(data.dateOfBirth);
-    if (!dob) throw new Error("Invalid date of birth format. Use DD/MM/YYYY.");
+    const entered = normalizeDob(data.dateOfJoining);
+    if (!entered) throw new Error("Invalid date format. Use DD/MM/YYYY.");
 
     const { data: reg } = await supabaseAdmin
       .from("registered_users")
-      .select("id, employee_id, name, avatar_url, total_points, rank, is_admin, date_of_birth, brand_name")
+      .select("id, employee_id, name, avatar_url, total_points, rank, is_admin, date_of_birth, date_of_joining, brand_name")
       .eq("employee_id", code)
       .maybeSingle();
-    if (!reg || normalizeDob(reg.date_of_birth) !== dob) {
+    const dojMatch = reg?.date_of_joining ? normalizeDob(reg.date_of_joining) === entered : false;
+    const dobMatch = reg?.date_of_birth ? normalizeDob(reg.date_of_birth) === entered : false;
+    if (!reg || (!dojMatch && !dobMatch)) {
       throw new Error("Profile not found. Please register first.");
     }
     // Stamp last login (best-effort; ignore errors).
@@ -128,7 +135,7 @@ export const loginWithEmployeeCode = createServerFn({ method: "POST" })
       .from("registered_users")
       .update({ last_login_at: new Date().toISOString() })
       .eq("employee_id", code);
-    const { date_of_birth: _dob, ...safe } = reg;
+    const { date_of_birth: _dob, date_of_joining: _doj, ...safe } = reg;
     return safe;
   });
 
