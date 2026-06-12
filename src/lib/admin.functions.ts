@@ -108,7 +108,6 @@ export const wipeMatches = createServerFn({ method: "POST" })
 const employeeSchema = z.object({
   employee_id: z.string().trim().min(1).max(32).regex(/^[A-Za-z0-9_-]+$/),
   date_of_birth: z.string().trim().min(1).max(32),
-  date_of_joining: z.string().trim().max(32).optional().nullable(),
   name: z.string().trim().min(1).max(128),
   brand_name: z.string().trim().max(64).optional().nullable(),
 });
@@ -135,7 +134,6 @@ export const importEligibleEmployees = createServerFn({ method: "POST" })
     const rows = data.employees.map((e) => ({
       employee_id: e.employee_id.toUpperCase(),
       date_of_birth: e.date_of_birth,
-      date_of_joining: e.date_of_joining?.trim() ? e.date_of_joining.trim() : null,
       name: e.name,
       brand_name: e.brand_name?.trim() ? e.brand_name.trim() : null,
     }));
@@ -192,7 +190,6 @@ const addEmployeeSchema = z.object({
   adminEmployeeId: z.string().min(1).max(32).regex(/^[A-Za-z0-9_-]+$/),
   employee_id: z.string().trim().min(1).max(32).regex(/^[A-Za-z0-9_-]+$/),
   date_of_birth: z.string().trim().min(1).max(32),
-  date_of_joining: z.string().trim().max(32).optional().nullable(),
   name: z.string().trim().min(1).max(128),
   brand_name: z.string().trim().max(64).optional().nullable(),
 });
@@ -205,7 +202,6 @@ export const addEligibleEmployee = createServerFn({ method: "POST" })
     const row = {
       employee_id: data.employee_id.toUpperCase(),
       date_of_birth: data.date_of_birth,
-      date_of_joining: data.date_of_joining?.trim() ? data.date_of_joining.trim() : null,
       name: data.name,
       brand_name: data.brand_name?.trim() ? data.brand_name.trim() : null,
     };

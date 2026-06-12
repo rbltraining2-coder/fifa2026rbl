@@ -55,8 +55,8 @@ const CSV_TEMPLATE =
   "France,Germany,2026-06-11T21:00:00Z,Group Stage\n";
 
 const USERS_CSV_TEMPLATE =
-  "employee_id,date_of_birth,date_of_joining,name,brand_name\n" +
-  "99999999,01/01/1990,15/06/2020,John Doe,GAS\n";
+  "employee_id,date_of_birth,name,brand_name\n" +
+  "99999999,01/01/1990,John Doe,GAS\n";
 
 export const Route = createFileRoute("/_app/admin")({
   head: () => ({ meta: [{ title: "Admin Dashboard — Goal Gurus" }] }),
@@ -115,7 +115,7 @@ function AdminPage() {
   const [userBusy, setUserBusy] = useState(false);
   const [userDragOver, setUserDragOver] = useState(false);
   const userInputRef = useRef<HTMLInputElement>(null);
-  const [manual, setManual] = useState({ employee_id: "", name: "", date_of_birth: "", date_of_joining: "", brand_name: "" });
+  const [manual, setManual] = useState({ employee_id: "", name: "", date_of_birth: "", brand_name: "" });
   const [adding, setAdding] = useState(false);
   const [manualMatch, setManualMatch] = useState({
     home_team: "",
@@ -287,14 +287,13 @@ function AdminPage() {
           return {
             employee_id: get("employee_id", 0),
             date_of_birth: get("date_of_birth", 1),
-            date_of_joining: get("date_of_joining", 2),
-            name: get("name", 3),
-            brand_name: get("brand_name", 4) || null,
+            name: get("name", 2),
+            brand_name: get("brand_name", 3) || null,
           };
         })
         .filter((e) => e.employee_id && e.date_of_birth && e.name);
       if (employees.length === 0) {
-        toast.error("No valid rows. Expected columns: employee_id, date_of_birth, date_of_joining, name.");
+        toast.error("No valid rows. Expected columns: employee_id, date_of_birth, name.");
         return;
       }
       const chunkSize = 100;
@@ -668,12 +667,6 @@ function AdminPage() {
                 className="rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[var(--primary)] outline-none"
               />
               <input
-                value={manual.date_of_joining}
-                onChange={(e) => setManual((m) => ({ ...m, date_of_joining: e.target.value }))}
-                placeholder="Date of Joining (DD/MM/YYYY)"
-                className="rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[var(--primary)] outline-none"
-              />
-              <input
                 value={manual.brand_name}
                 onChange={(e) => setManual((m) => ({ ...m, brand_name: e.target.value }))}
                 placeholder="Brand Name (e.g. GAS)"
@@ -702,7 +695,7 @@ function AdminPage() {
                     },
                   });
                   toast.success(`Added ${manual.name} to the master roster.`);
-                  setManual({ employee_id: "", name: "", date_of_birth: "", date_of_joining: "", brand_name: "" });
+                  setManual({ employee_id: "", name: "", date_of_birth: "", brand_name: "" });
                   await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
                 } catch (err) {
                   toast.error(err instanceof Error ? err.message : "Add failed");
@@ -757,7 +750,7 @@ function AdminPage() {
               {userBusy ? "Importing…" : "Upload Master Roster (CSV Format)"}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Columns: employee_id, date_of_birth (DD/MM/YYYY), date_of_joining (DD/MM/YYYY), name, brand_name (optional).
+              Columns: employee_id, date_of_birth (DD/MM/YYYY), name, brand_name (optional).
             </p>
             <input
               ref={userInputRef}
