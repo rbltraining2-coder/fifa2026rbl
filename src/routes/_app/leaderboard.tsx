@@ -58,14 +58,6 @@ type MatchPredictionRow = {
   created_at: string;
 };
 
-type PredictionAggregateRow = {
-  id: string;
-  user_id: string;
-  match_id: string;
-  points_earned: number;
-  created_at: string;
-};
-
 function LeaderboardPage() {
   const { user } = useAuth();
   const [tab, setTab] = useState<"overall" | "matches" | "history">("overall");
