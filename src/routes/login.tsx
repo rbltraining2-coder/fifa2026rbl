@@ -38,7 +38,7 @@ function LoginPage() {
   const [mode, setMode] = useState<Mode>("login");
   const [step, setStep] = useState<Step>("creds");
   const [code, setCode] = useState("");
-  const [dob, setDob] = useState("");
+  const [doj, setDoj] = useState("");
   const [eligibleName, setEligibleName] = useState("");
   const [busy, setBusy] = useState(false);
   const [alreadyOpen, setAlreadyOpen] = useState(false);
@@ -62,10 +62,10 @@ function LoginPage() {
 
   const onLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code.trim() || !dob.trim()) return;
+    if (!code.trim() || !doj.trim()) return;
     setBusy(true);
     try {
-      const r = await login({ data: { employeeCode: code.trim(), dateOfBirth: dob.trim() } });
+      const r = await login({ data: { employeeCode: code.trim(), dateOfJoining: doj.trim() } });
       signIn(r);
       toast.success("Welcome back!");
       setTransitioning(true);
@@ -78,10 +78,10 @@ function LoginPage() {
 
   const onVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code.trim() || !dob.trim()) return;
+    if (!code.trim() || !doj.trim()) return;
     setBusy(true);
     try {
-      const r = await verify({ data: { employeeCode: code.trim(), dateOfBirth: dob.trim() } });
+      const r = await verify({ data: { employeeCode: code.trim(), dateOfJoining: doj.trim() } });
       setEligibleName(r.name);
       setStep("avatar");
     } catch (err) {
@@ -115,7 +115,7 @@ function LoginPage() {
       // Upload avatar first under a code-scoped path, then insert the row.
       const avatarUrl = await compressAndUploadAvatar(avatarFile, code.trim().toUpperCase());
       const r = await register({
-        data: { employeeCode: code.trim(), dateOfBirth: dob.trim(), avatarUrl },
+        data: { employeeCode: code.trim(), dateOfJoining: doj.trim(), avatarUrl },
       });
       signIn(r);
       toast.success(`Welcome, ${eligibleName}!`);
@@ -197,8 +197,8 @@ function LoginPage() {
                 />
               </label>
               <label className="block">
-                <span className="text-xs uppercase tracking-widest text-muted-foreground">Date of Birth</span>
-                <DobInput value={dob} onChange={setDob} />
+                <span className="text-xs uppercase tracking-widest text-muted-foreground">Date of Joining</span>
+                <DobInput value={doj} onChange={setDoj} />
                 <span className="mt-1 block text-[10px] text-muted-foreground/70">Type DD/MM/YYYY or tap the calendar</span>
               </label>
               <button type="submit" disabled={busy} className="btn-glossy w-full">
@@ -208,7 +208,7 @@ function LoginPage() {
               </button>
               <p className="text-xs text-center text-muted-foreground">
                 {mode === "login"
-                  ? "Use your employee ID and date of birth to sign in."
+                  ? "Use your employee ID and date of joining to sign in."
                   : "New here? We'll verify you against the corporate roster."}
               </p>
             </form>
