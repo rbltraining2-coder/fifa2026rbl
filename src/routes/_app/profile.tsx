@@ -29,11 +29,11 @@ function ProfilePage() {
   const [uploading, setUploading] = useState(false);
 
   const { data: stats } = useQuery({
-    queryKey: ["my-stats", user?.id],
-    enabled: !!user,
+    queryKey: ["my-stats", profile?.employee_id],
+    enabled: !!profile?.employee_id,
     queryFn: async () => {
       const [{ count: matches }, { count: rank }] = await Promise.all([
-        supabase.from("predictions").select("*", { count: "exact", head: true }).eq("user_id", user!.id),
+        supabase.from("predictions").select("*", { count: "exact", head: true }).eq("user_id", profile!.employee_id),
         supabase
           .from("registered_users")
           .select("*", { count: "exact", head: true })
@@ -44,13 +44,13 @@ function ProfilePage() {
   });
 
   const { data: badges } = useQuery({
-    queryKey: ["my-badges", user?.id],
-    enabled: !!user,
+    queryKey: ["my-badges", profile?.employee_id],
+    enabled: !!profile?.employee_id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_badges")
         .select("badge_code, badge_label, badge_description, awarded_at")
-        .eq("user_id", user!.id)
+        .eq("user_id", profile!.employee_id)
         .order("awarded_at", { ascending: true });
       if (error) throw error;
       return data ?? [];
