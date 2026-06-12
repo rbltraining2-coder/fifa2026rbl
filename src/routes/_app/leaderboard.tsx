@@ -357,25 +357,34 @@ function MatchLeaderboardList({ currentUserId }: MatchLeaderboardListProps) {
       const list = (matches ?? []) as CompletedMatch[];
       const ids = list.map((m) => m.id);
       if (ids.length === 0) return [];
-      const { data: preds, error: pErr } = (await supabase
-        .from("predictions")
-        .select(`
-          id,
-          match_id,
-          user_id,
-          points_earned,
-          created_at,
-          predicted_home_score,
-          predicted_away_score,
-          registered_users (
-            name,
-            avatar_url,
-            brand_name
-          )
-        `)
-        .in("match_id", ids)) as any;
-      if (pErr) throw pErr;
-      const predsList = (preds ?? []) as any[];
+      const predsList: any[] = [];
+      {
+        const pageSize = 1000;
+        for (let from = 0; ; from += pageSize) {
+          const { data, error } = (await supabase
+            .from("predictions")
+            .select(`
+              id,
+              match_id,
+              user_id,
+              points_earned,
+              created_at,
+              predicted_home_score,
+              predicted_away_score,
+              registered_users (
+                name,
+                avatar_url,
+                brand_name
+              )
+            `)
+            .in("match_id", ids)
+            .range(from, from + pageSize - 1)) as any;
+          if (error) throw error;
+          const batch = (data ?? []) as any[];
+          predsList.push(...batch);
+          if (batch.length < pageSize) break;
+        }
+      }
       const matchPredsMap = new Map<string, any[]>();
       for (const p of predsList) {
         const arr = matchPredsMap.get(p.match_id) ?? [];
