@@ -19,6 +19,138 @@ import { supabase } from "@/integrations/supabase/client";
 export type UserStat = { exactCount: number; winnerCount: number; firstAt: string };
 export type UserStatMap = Map<string, UserStat>;
 
+export type OverallLeaderboardRow = {
+  id: string;
+  employee_id: string;
+  name: string;
+  brand_name: string | null;
+  avatar_url: string | null;
+  total_points: number;
+  exact_hits: number;
+  winner_hits: number;
+  played: number;
+  accuracy: number;
+  first_prediction_at: string;
+};
+
+type OverallAggregatePredictionRow = {
+  id: string;
+  user_id: string;
+  match_id: string;
+  points_earned: number;
+  created_at: string;
+};
+
+/**
+ * Shared overall-leaderboard fetcher used by both the Leaderboard page and the
+ * Profile page so that rank/played values stay consistent (including
+ * tie-breaker behaviour).
+ */
+export function useOverallLeaderboard() {
+  return useQuery({
+    queryKey: ["leaderboard", "overall-completed-aggregate"],
+    queryFn: async () => {
+      const { data: matches, error: mErr } = await supabase
+        .from("matches")
+        .select("id")
+        .eq("status", "completed")
+        .not("home_score", "is", null)
+        .not("away_score", "is", null)
+        .limit(1000);
+      if (mErr) throw mErr;
+
+      type UserRow = Pick<
+        OverallLeaderboardRow,
+        "id" | "employee_id" | "name" | "avatar_url" | "total_points" | "brand_name"
+      >;
+      const users: UserRow[] = [];
+      {
+        const pageSize = 1000;
+        for (let from = 0; ; from += pageSize) {
+          const { data, error } = await supabase
+            .from("registered_users")
+            .select("id, employee_id, name, avatar_url, total_points, brand_name")
+            .range(from, from + pageSize - 1);
+          if (error) throw error;
+          users.push(...((data ?? []) as UserRow[]));
+          if ((data ?? []).length < pageSize) break;
+        }
+      }
+
+      const completedIds = new Set((matches ?? []).map((m) => m.id as string));
+      const preds: OverallAggregatePredictionRow[] = [];
+      const pageSize = 1000;
+      for (let from = 0; ; from += pageSize) {
+        const { data, error } = await supabase
+          .from("predictions")
+          .select("id, user_id, match_id, points_earned, created_at")
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        preds.push(...((data ?? []) as OverallAggregatePredictionRow[]));
+        if ((data ?? []).length < pageSize) break;
+      }
+
+      const scoredPreds = preds.filter((p) => completedIds.has(p.match_id));
+      const statMap = buildUserStatMap(
+        scoredPreds,
+        (p) => p.user_id,
+        (p) => p.points_earned ?? 0,
+        (p) => p.created_at,
+      );
+      const aggregates = new Map<
+        string,
+        Pick<
+          OverallLeaderboardRow,
+          "total_points" | "exact_hits" | "winner_hits" | "played" | "accuracy" | "first_prediction_at"
+        >
+      >();
+      for (const p of scoredPreds) {
+        const cur = aggregates.get(p.user_id) ?? {
+          total_points: 0,
+          exact_hits: 0,
+          winner_hits: 0,
+          played: 0,
+          accuracy: 0,
+          first_prediction_at: p.created_at,
+        };
+        cur.total_points += p.points_earned ?? 0;
+        cur.exact_hits += p.points_earned === 3 ? 1 : 0;
+        cur.winner_hits += p.points_earned === 1 ? 1 : 0;
+        cur.played += 1;
+        if (p.created_at < cur.first_prediction_at) cur.first_prediction_at = p.created_at;
+        aggregates.set(p.user_id, cur);
+      }
+
+      const rows: OverallLeaderboardRow[] = users.map((u) => {
+        const a = aggregates.get(u.employee_id) ?? {
+          total_points: 0,
+          exact_hits: 0,
+          winner_hits: 0,
+          played: 0,
+          accuracy: 0,
+          first_prediction_at: "\uffff",
+        };
+        const correct = a.exact_hits + a.winner_hits;
+        return {
+          ...u,
+          total_points: a.total_points,
+          exact_hits: a.exact_hits,
+          winner_hits: a.winner_hits,
+          played: a.played,
+          accuracy: a.played > 0 ? Math.round((correct / a.played) * 100) : 0,
+          first_prediction_at: a.first_prediction_at,
+        };
+      });
+      return {
+        rows,
+        statMap,
+        totalPredictions: preds.length,
+        completedCount: completedIds.size,
+      };
+    },
+  });
+}
+
 export function buildUserStatMap<T>(
   rows: T[],
   getUserId: (r: T) => string,
