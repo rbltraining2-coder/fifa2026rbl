@@ -74,21 +74,28 @@ function LeaderboardPage() {
   const { data: leaderboardData, isLoading } = useQuery({
     queryKey: ["leaderboard", "overall-completed-aggregate"],
     queryFn: async () => {
-      const [{ data: matches, error: mErr }, { data: users, error: uErr }] = await Promise.all([
-        supabase
-          .from("matches")
-          .select("id")
-          .eq("status", "completed")
-          .not("home_score", "is", null)
-          .not("away_score", "is", null)
-          .limit(1000),
-        supabase
-        .from("registered_users")
-        .select("id, employee_id, name, avatar_url, total_points, brand_name")
-          .limit(500),
-      ]);
+      const { data: matches, error: mErr } = await supabase
+        .from("matches")
+        .select("id")
+        .eq("status", "completed")
+        .not("home_score", "is", null)
+        .not("away_score", "is", null)
+        .limit(1000);
       if (mErr) throw mErr;
-      if (uErr) throw uErr;
+
+      const users: Pick<Row, "id" | "employee_id" | "name" | "avatar_url" | "total_points" | "brand_name">[] = [];
+      {
+        const pageSize = 1000;
+        for (let from = 0; ; from += pageSize) {
+          const { data, error } = await supabase
+            .from("registered_users")
+            .select("id, employee_id, name, avatar_url, total_points, brand_name")
+            .range(from, from + pageSize - 1);
+          if (error) throw error;
+          users.push(...((data ?? []) as typeof users));
+          if ((data ?? []).length < pageSize) break;
+        }
+      }
 
       const completedIds = new Set((matches ?? []).map((m) => m.id as string));
       const preds: PredictionAggregateRow[] = [];
