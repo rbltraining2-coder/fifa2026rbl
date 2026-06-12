@@ -146,16 +146,10 @@ export const importEligibleEmployees = createServerFn({ method: "POST" })
       return true;
     });
 
-    const { error: delErr } = await supabaseAdmin
+    const { error: upsertErr, count } = await supabaseAdmin
       .from("eligible_employees")
-      .delete()
-      .in("employee_id", deduped.map((r) => r.employee_id));
-    if (delErr) throw new Error(delErr.message);
-
-    const { error: insErr, count } = await supabaseAdmin
-      .from("eligible_employees")
-      .insert(deduped, { count: "exact" });
-    if (insErr) throw new Error(insErr.message);
+      .upsert(deduped, { onConflict: "employee_id", count: "exact" });
+    if (upsertErr) throw new Error(upsertErr.message);
 
     // Sync brand_name onto already-registered users so existing rosters update too.
     // Run updates in parallel, chunked to avoid overwhelming the database.
@@ -205,9 +199,9 @@ export const addEligibleEmployee = createServerFn({ method: "POST" })
       name: data.name,
       brand_name: data.brand_name?.trim() ? data.brand_name.trim() : null,
     };
-    // Remove any existing row with the same id, then insert fresh.
-    await supabaseAdmin.from("eligible_employees").delete().eq("employee_id", row.employee_id);
-    const { error } = await supabaseAdmin.from("eligible_employees").insert(row);
+    const { error } = await supabaseAdmin
+      .from("eligible_employees")
+      .upsert(row, { onConflict: "employee_id" });
     if (error) throw new Error(error.message);
     await supabaseAdmin
       .from("registered_users")
