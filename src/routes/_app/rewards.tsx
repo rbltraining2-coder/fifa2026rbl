@@ -201,6 +201,55 @@ function RewardsPage() {
     });
   }, [rows, tab, periodStatsSource, nameMap]);
 
+  const todayWinners = useMemo(() => {
+    if (tab !== "daily") return null;
+    if (!periodStatsSource || periodStatsSource.matchById.size === 0) return null;
+    const allMatches = Array.from(periodStatsSource.matchById.values());
+    if (allMatches.length === 0) return null;
+    const sorted = [...allMatches].sort(
+      (a, b) => Date.parse(b.match_time) - Date.parse(a.match_time),
+    );
+    const mostRecent = sorted[0];
+    const fmt = (iso: string) =>
+      new Date(iso).toLocaleDateString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    const targetDateString = fmt(mostRecent.match_time);
+    const targetMatches = allMatches.filter(
+      (m) => fmt(m.match_time) === targetDateString,
+    );
+    const targetIds = new Set(targetMatches.map((m) => m.id));
+    const dailyPredictions = periodStatsSource.predictions.filter((p) =>
+      targetIds.has(p.match_id),
+    );
+    const totals = new Map<string, number>();
+    for (const p of dailyPredictions) {
+      totals.set(p.user_id, (totals.get(p.user_id) ?? 0) + (p.points_earned ?? 0));
+    }
+    const stats = buildUserStatMap(
+      dailyPredictions,
+      (p) => p.user_id,
+      (p) => p.points_earned ?? 0,
+      (p) => p.created_at,
+    );
+    const userRows = Array.from(totals.entries()).map(([user_id, total_points]) => ({
+      user_id,
+      total_points,
+    }));
+    const ranked = sortAndRank(
+      userRows,
+      (r) => r.user_id,
+      (r) => nameMap?.get(r.user_id)?.name ?? r.user_id,
+      (r) => r.total_points,
+      stats,
+    );
+    const top3 = ranked.filter((r) => r.rank <= 3);
+    return { dateLabel: targetDateString, items: top3 };
+  }, [tab, periodStatsSource, nameMap]);
+
   return (
     <div className="space-y-5">
       <h1 className="text-xl font-black">Rewards</h1>
@@ -257,6 +306,97 @@ function RewardsPage() {
         </div>
       ) : (
         <ul className="space-y-4">
+          {tab === "daily" && todayWinners && todayWinners.items.length > 0 && (
+            <li className="glossy-card p-4 relative overflow-hidden">
+              <div className="accent-strip" />
+              <div className="flex items-center justify-between mb-3">
+                <p
+                  className="text-sm font-black tracking-wide"
+                  style={{ color: "#f5d76e", textShadow: "0 0 12px rgba(245,215,110,0.45)" }}
+                >
+                  🏆 Top 3 Winners of the Day
+                </p>
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  {todayWinners.dateLabel}
+                </span>
+              </div>
+              <ul className="space-y-2">
+                {todayWinners.items.map((w) => {
+                  const u = nameMap?.get(w.user_id);
+                  const mine = w.user_id === user?.employee_id;
+                  const isFirst = w.rank === 1;
+                  if (isFirst) {
+                    return (
+                      <li
+                        key={`today-${w.user_id}`}
+                        className={`flex items-center gap-3 p-3 rounded-xl ${mine ? "rank-mine" : ""}`}
+                        style={{
+                          background:
+                            "linear-gradient(135deg, rgba(245,215,110,0.22), rgba(245,215,110,0.04))",
+                          border: "1px solid rgba(245,215,110,0.4)",
+                        }}
+                      >
+                        <div className="flex flex-col items-center justify-center shrink-0 w-8">
+                          <Crown size={18} className="text-yellow-300" />
+                          <span className="text-[9px] font-black text-yellow-300 mt-0.5 tracking-wider">
+                            1ST
+                          </span>
+                        </div>
+                        <Avatar url={u?.avatar_url ?? null} fallback={u?.name ?? w.user_id} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-black truncate">
+                            {u?.name ?? w.user_id}
+                            <span className="font-normal text-muted-foreground">
+                              {" | "}
+                              <BrandLabel brand={u?.brand_name} />
+                            </span>
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">{w.user_id}</p>
+                        </div>
+                        <div className="text-right">
+                          <span
+                            className="text-lg font-black tabular-nums"
+                            style={{ color: "#f5d76e" }}
+                          >
+                            {w.total_points}
+                          </span>
+                          <span className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold block">
+                            pts
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  }
+                  return (
+                    <li
+                      key={`today-${w.user_id}`}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/5 ${mine ? "rank-mine" : ""}`}
+                    >
+                      <span className="w-8 text-center text-xs font-black text-muted-foreground tabular-nums">
+                        {w.rank === 2 ? "2nd" : "3rd"}
+                      </span>
+                      <Avatar url={u?.avatar_url ?? null} fallback={u?.name ?? w.user_id} small />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold truncate">
+                          {u?.name ?? w.user_id}
+                          <span className="font-normal text-muted-foreground">
+                            {" | "}
+                            <BrandLabel brand={u?.brand_name} />
+                          </span>
+                        </p>
+                      </div>
+                      <span
+                        className="text-sm font-black tabular-nums"
+                        style={{ color: "var(--primary-glow)" }}
+                      >
+                        {w.total_points}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </li>
+          )}
           {periods.map((p) => {
             const winners = p.items.filter((i) => i.rank === 1);
             const runners = p.items.filter((i) => i.rank > 1 && i.rank <= 3);
