@@ -166,7 +166,7 @@ export const importEligibleEmployees = createServerFn({ method: "POST" })
         chunk.map((r) =>
           supabaseAdmin
             .from("registered_users")
-            .update({ brand_name: r.brand_name })
+            .update({ brand_name: r.brand_name, date_of_birth: r.date_of_birth })
             .eq("employee_id", r.employee_id),
         ),
       );
@@ -211,7 +211,7 @@ export const addEligibleEmployee = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     await supabaseAdmin
       .from("registered_users")
-      .update({ brand_name: row.brand_name })
+      .update({ brand_name: row.brand_name, date_of_birth: row.date_of_birth })
       .eq("employee_id", row.employee_id);
     return { ok: true, employee_id: row.employee_id };
   });

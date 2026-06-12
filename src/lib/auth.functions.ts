@@ -38,7 +38,7 @@ export const verifyEligibility = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const code = data.employeeCode.toUpperCase();
     const dob = normalizeDob(data.dateOfBirth);
-    if (!dob) throw new Error("Invalid date of birth format. Use DD/MM/YYYY.");
+    if (!dob) throw new Error("Invalid date format. Use DD/MM/YYYY.");
 
     const { data: existing } = await supabaseAdmin
       .from("registered_users")
@@ -71,7 +71,7 @@ export const completeRegistration = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const code = data.employeeCode.toUpperCase();
     const dob = normalizeDob(data.dateOfBirth);
-    if (!dob) throw new Error("Invalid date of birth format.");
+    if (!dob) throw new Error("Invalid date format.");
 
     const { data: emp } = await supabaseAdmin
       .from("eligible_employees")
@@ -113,7 +113,7 @@ export const loginWithEmployeeCode = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const code = data.employeeCode.toUpperCase();
     const dob = normalizeDob(data.dateOfBirth);
-    if (!dob) throw new Error("Invalid date of birth format. Use DD/MM/YYYY.");
+    if (!dob) throw new Error("Invalid date format. Use DD/MM/YYYY.");
 
     const { data: reg } = await supabaseAdmin
       .from("registered_users")

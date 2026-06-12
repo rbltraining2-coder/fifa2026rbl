@@ -58,6 +58,7 @@ export type Database = {
           brand_name: string | null
           created_at: string
           date_of_birth: string
+          date_of_joining: string | null
           employee_id: string
           name: string
         }
@@ -65,6 +66,7 @@ export type Database = {
           brand_name?: string | null
           created_at?: string
           date_of_birth: string
+          date_of_joining?: string | null
           employee_id: string
           name: string
         }
@@ -72,6 +74,7 @@ export type Database = {
           brand_name?: string | null
           created_at?: string
           date_of_birth?: string
+          date_of_joining?: string | null
           employee_id?: string
           name?: string
         }
@@ -254,6 +257,7 @@ export type Database = {
           brand_name: string | null
           created_at: string
           date_of_birth: string
+          date_of_joining: string | null
           employee_id: string
           id: string
           is_admin: boolean
@@ -269,6 +273,7 @@ export type Database = {
           brand_name?: string | null
           created_at?: string
           date_of_birth: string
+          date_of_joining?: string | null
           employee_id: string
           id?: string
           is_admin?: boolean
@@ -284,6 +289,7 @@ export type Database = {
           brand_name?: string | null
           created_at?: string
           date_of_birth?: string
+          date_of_joining?: string | null
           employee_id?: string
           id?: string
           is_admin?: boolean
