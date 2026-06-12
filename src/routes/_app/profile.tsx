@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Camera, ChevronRight, ListChecks, Activity, Award, LogOut, Trophy, Star, Target, Zap, Medal, Crown } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { compressAndUploadAvatar } from "@/lib/avatar";
 import { supabase } from "@/integrations/supabase/client";
+import { sortAndRank, useOverallLeaderboard } from "@/lib/ranking";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/profile")({
@@ -28,20 +29,22 @@ function ProfilePage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
-  const { data: stats } = useQuery({
-    queryKey: ["my-stats", profile?.employee_id],
-    enabled: !!profile?.employee_id,
-    queryFn: async () => {
-      const [{ count: matches }, { count: rank }] = await Promise.all([
-        supabase.from("predictions").select("*", { count: "exact", head: true }).eq("user_id", profile!.employee_id),
-        supabase
-          .from("registered_users")
-          .select("*", { count: "exact", head: true })
-          .gt("total_points", profile?.total_points ?? 0),
-      ]);
-      return { matches: matches ?? 0, rank: (rank ?? 0) + 1 };
-    },
-  });
+  const { data: leaderboardData } = useOverallLeaderboard();
+  const stats = useMemo(() => {
+    if (!leaderboardData || !profile?.employee_id) return null;
+    const ranked = sortAndRank(
+      leaderboardData.rows,
+      (r) => r.employee_id,
+      (r) => r.name || r.employee_id,
+      (r) => r.total_points ?? 0,
+      leaderboardData.statMap,
+    );
+    const mine = ranked.find((r) => r.employee_id === profile.employee_id);
+    return {
+      matches: mine?.played ?? 0,
+      rank: mine?.rank ?? 0,
+    };
+  }, [leaderboardData, profile?.employee_id]);
 
   const { data: badges } = useQuery({
     queryKey: ["my-badges", profile?.employee_id],
