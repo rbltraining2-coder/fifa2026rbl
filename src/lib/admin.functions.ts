@@ -532,3 +532,39 @@ export const exportRosterActivity = createServerFn({ method: "POST" })
     );
     return { rows };
   });
+
+/* ------------------------------------------------------------------ */
+/* Edit existing match details                                         */
+/* ------------------------------------------------------------------ */
+
+const updateMatchSchema = z.object({
+  adminEmployeeId: z.string().min(1).max(32).regex(/^[A-Za-z0-9_-]+$/),
+  matchId: z.string().uuid(),
+  home_team: z.string().trim().min(1).max(64),
+  away_team: z.string().trim().min(1).max(64),
+  match_time: z.string().trim().min(1).max(64),
+  stage_name: z.string().trim().max(64).optional().nullable(),
+});
+
+export const updateMatchDetails = createServerFn({ method: "POST" })
+  .inputValidator((d) => updateMatchSchema.parse(d))
+  .handler(async ({ data }) => {
+    await assertAdmin(data.adminEmployeeId);
+    const iso = toIso(data.match_time);
+    if (!iso) throw new Error(`Invalid match_time "${data.match_time}"`);
+    if (data.home_team.trim().toLowerCase() === data.away_team.trim().toLowerCase()) {
+      throw new Error("Home and away teams must be different.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("matches")
+      .update({
+        home_team: data.home_team.trim(),
+        away_team: data.away_team.trim(),
+        match_time: iso,
+        stage_name: data.stage_name?.trim() || null,
+      })
+      .eq("id", data.matchId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
