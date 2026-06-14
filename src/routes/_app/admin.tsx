@@ -600,6 +600,7 @@ function AdminPage() {
           {addingMatch ? "Adding…" : "Add Match"}
         </button>
       </section>
+      <EditMatchSection adminEmployeeId={profile.employee_id} />
         </>
       )}
 
