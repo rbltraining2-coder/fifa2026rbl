@@ -1875,3 +1875,147 @@ function ContentManagementPanel({ adminEmployeeId }: { adminEmployeeId: string }
     </div>
   );
 }
+
+function EditMatchSection({ adminEmployeeId }: { adminEmployeeId: string }) {
+  const qc = useQueryClient();
+  const listFn = useServerFn(listMatchesForAdmin);
+  const updateFn = useServerFn(updateMatchDetails);
+  const q = useQuery({
+    queryKey: ["matches", "admin-edit-list"],
+    queryFn: () => listFn({ data: { adminEmployeeId } }),
+  });
+  const matches = q.data?.matches ?? [];
+  const [selectedId, setSelectedId] = useState<string>("");
+  const [form, setForm] = useState({ home_team: "", away_team: "", match_time: "", stage_name: "" });
+  const [saving, setSaving] = useState(false);
+
+  function utcIsoToIstLocalInput(iso: string): string {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    // Shift to IST (+05:30) then format as datetime-local string.
+    const ist = new Date(d.getTime() + 5.5 * 60 * 60 * 1000);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${ist.getUTCFullYear()}-${pad(ist.getUTCMonth() + 1)}-${pad(ist.getUTCDate())}T${pad(ist.getUTCHours())}:${pad(ist.getUTCMinutes())}`;
+  }
+
+  function onSelect(id: string) {
+    setSelectedId(id);
+    const m = matches.find((x) => x.id === id);
+    if (!m) return;
+    setForm({
+      home_team: m.home_team,
+      away_team: m.away_team,
+      match_time: utcIsoToIstLocalInput(m.match_time),
+      stage_name: m.stage_name ?? "",
+    });
+  }
+
+  return (
+    <section className="glossy-card p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <CheckCircle2 size={16} style={{ color: "#FF6500" }} />
+        <h3 className="text-sm font-bold uppercase tracking-wider">Edit Existing Match</h3>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Fix spelling, stage, or kick-off time for any scheduled or completed match.
+      </p>
+
+      <label className="space-y-1 block">
+        <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Select Match</span>
+        <select
+          value={selectedId}
+          onChange={(e) => onSelect(e.target.value)}
+          className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[#FF6500] outline-none"
+        >
+          <option value="">{q.isLoading ? "Loading matches…" : `Choose a match (${matches.length})`}</option>
+          {matches.map((m) => (
+            <option key={m.id} value={m.id}>
+              {formatIstShort(m.match_time)} — {m.home_team} vs {m.away_team}
+              {m.stage_name ? ` (${m.stage_name})` : ""}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {selectedId && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="space-y-1">
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Home Team</span>
+              <input
+                value={form.home_team}
+                onChange={(e) => setForm((f) => ({ ...f, home_team: e.target.value }))}
+                maxLength={64}
+                className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[#FF6500] outline-none"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Away Team</span>
+              <input
+                value={form.away_team}
+                onChange={(e) => setForm((f) => ({ ...f, away_team: e.target.value }))}
+                maxLength={64}
+                className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[#FF6500] outline-none"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Match Date &amp; Time ({IST_LABEL})
+              </span>
+              <input
+                type="datetime-local"
+                value={form.match_time}
+                onChange={(e) => setForm((f) => ({ ...f, match_time: e.target.value }))}
+                className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[#FF6500] outline-none"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Stage / Group</span>
+              <input
+                value={form.stage_name}
+                onChange={(e) => setForm((f) => ({ ...f, stage_name: e.target.value }))}
+                maxLength={64}
+                className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 focus:border-[#FF6500] outline-none"
+              />
+            </label>
+          </div>
+
+          <button
+            type="button"
+            disabled={saving || !form.home_team.trim() || !form.away_team.trim() || !form.match_time.trim()}
+            onClick={async () => {
+              setSaving(true);
+              try {
+                await updateFn({
+                  data: {
+                    adminEmployeeId,
+                    matchId: selectedId,
+                    home_team: form.home_team.trim(),
+                    away_team: form.away_team.trim(),
+                    match_time: istLocalInputToUtcIso(form.match_time) || form.match_time,
+                    stage_name: form.stage_name.trim() || null,
+                  },
+                });
+                toast.success("Match updated");
+                await qc.invalidateQueries({ queryKey: ["matches"] });
+                await q.refetch();
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed to update match");
+              } finally {
+                setSaving(false);
+              }
+            }}
+            className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold uppercase tracking-wider text-white flex items-center justify-center gap-2 disabled:opacity-60"
+            style={{
+              background: "linear-gradient(135deg, #FF6500 0%, #ff8a3d 100%)",
+              boxShadow: "0 10px 30px -10px rgba(255,101,0,0.55)",
+            }}
+          >
+            <CheckCircle2 size={16} />
+            {saving ? "Saving…" : "Save Changes"}
+          </button>
+        </>
+      )}
+    </section>
+  );
+}
