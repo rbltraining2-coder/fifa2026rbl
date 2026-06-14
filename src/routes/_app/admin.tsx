@@ -17,6 +17,7 @@ import {
   addMatchManually,
   checkDatabaseStorage,
   exportRosterActivity,
+  updateMatchDetails,
 } from "@/lib/admin.functions";
 import {
   triggerScoreSync,
