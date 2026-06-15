@@ -164,7 +164,7 @@ export const listAnnouncementsAdmin = createServerFn({ method: "POST" })
 
 /* ========== Prize Labels (Daily/Weekly/Monthly/Season) ========== */
 
-export type PrizeLabelPeriod = "daily" | "weekly" | "monthly" | "season";
+export type PrizeLabelPeriod = "daily" | "weekly" | "monthly" | "season" | string;
 export type PrizeLabel = {
   id: string;
   period_type: PrizeLabelPeriod;
@@ -177,7 +177,7 @@ export type PrizeLabel = {
 const prizeSchema = z.object({
   adminEmployeeId: adminSchema,
   id: z.string().uuid().optional(),
-  period_type: z.enum(["daily", "weekly", "monthly", "season"]),
+  period_type: z.string().min(1).max(64),
   rank: z.number().int().min(1).max(100),
   label: z.string().trim().min(1).max(120),
   icon: z.string().trim().max(32).optional().nullable().or(z.literal("")),
@@ -232,4 +232,25 @@ export const listPrizeLabelsAdmin = createServerFn({ method: "POST" })
       .order("rank", { ascending: true });
     if (error) throw new Error(error.message);
     return { items: (rows ?? []) as PrizeLabel[] };
+  });
+
+export const listWeeklyPeriodsAdmin = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ adminEmployeeId: adminSchema }).parse(d))
+  .handler(async ({ data }) => {
+    await assertAdmin(data.adminEmployeeId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await (supabaseAdmin as any)
+      .from("reward_winners")
+      .select("period_key, period_label, period_start")
+      .eq("period_type", "weekly")
+      .order("period_start", { ascending: false });
+    if (error) throw new Error(error.message);
+    const seen = new Set<string>();
+    const items: { period_key: string; period_label: string }[] = [];
+    for (const r of (rows ?? []) as Array<{ period_key: string; period_label: string }>) {
+      if (seen.has(r.period_key)) continue;
+      seen.add(r.period_key);
+      items.push({ period_key: r.period_key, period_label: r.period_label });
+    }
+    return { items };
   });

@@ -99,8 +99,13 @@ function RewardsPage() {
     (prizes ?? []).forEach(r => m.set(`${r.period_type}:${r.rank}`, r));
     return m;
   }, [prizes]);
-  const getPrize = (period: PeriodType, rank: number) =>
-    prizeByKey.get(`${period}:${rank}`) ?? null;
+  const getPrize = (period: PeriodType, rank: number, periodKey?: string) => {
+    if (period === "weekly" && periodKey) {
+      const specific = prizeByKey.get(`weekly_${periodKey}:${rank}`);
+      if (specific) return specific;
+    }
+    return prizeByKey.get(`${period}:${rank}`) ?? null;
+  };
 
   const { data: rows, isLoading } = useQuery({
     queryKey: ["reward_winners", tab],
@@ -436,7 +441,7 @@ function RewardsPage() {
                           </p>
                           <p className="text-[10px] text-muted-foreground">{w.user_id}</p>
                           <p className="text-[10px] font-bold mt-0.5" style={{ color: "#f5d76e" }}>{LABELS[tab].winner}</p>
-                          <PrizeBadge prize={getPrize(tab, w.rank)} tone="gold" />
+                          <PrizeBadge prize={getPrize(tab, w.rank, p.key)} tone="gold" />
                           {tab === "season" && merchByRank.get(w.rank) && (
                             <p className="text-[10px] text-[color:var(--primary-glow)] font-semibold mt-0.5">🎁 {merchByRank.get(w.rank)!.name}</p>
                           )}
@@ -467,7 +472,7 @@ function RewardsPage() {
                             {u?.name ?? r.user_id}
                             <span className="font-normal text-muted-foreground"> | <BrandLabel brand={u?.brand_name} /></span>
                           </p>
-                          <PrizeBadge prize={getPrize(tab, r.rank)} tone="silver" />
+                          <PrizeBadge prize={getPrize(tab, r.rank, p.key)} tone="silver" />
                           {tab === "season" && merchByRank.get(r.rank) && (
                             <p className="text-[10px] text-[color:var(--primary-glow)] font-semibold">🎁 {merchByRank.get(r.rank)!.name}</p>
                           )}
