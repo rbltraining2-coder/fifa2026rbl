@@ -1712,7 +1712,7 @@ function PrizeLabelsPanel({ adminEmployeeId }: { adminEmployeeId: string }) {
         </div>
       </section>
 
-      {(["daily","weekly","monthly","season"] as PrizeLabelPeriod[]).map(period => (
+      {(["daily","weekly","monthly","season"] as const).map(period => (
         <section key={period} className="glossy-card p-5">
           <h3 className="text-sm font-bold uppercase tracking-wider mb-3">
             {period} Prizes ({grouped[period].length})
@@ -1723,7 +1723,7 @@ function PrizeLabelsPanel({ adminEmployeeId }: { adminEmployeeId: string }) {
             <div className="overflow-x-auto rounded-lg border border-white/10">
               <table className="w-full text-xs">
                 <thead className="bg-white/5 text-muted-foreground uppercase tracking-wider">
-                  <tr><th className="text-left px-3 py-2">Rank</th><th className="text-left px-3 py-2">Icon</th><th className="text-left px-3 py-2">Label</th><th className="text-left px-3 py-2">Status</th><th className="text-right px-3 py-2">Actions</th></tr>
+                  <tr><th className="text-left px-3 py-2">Rank</th><th className="text-left px-3 py-2">Icon</th><th className="text-left px-3 py-2">Label</th>{period === "weekly" && <th className="text-left px-3 py-2">Scope</th>}<th className="text-left px-3 py-2">Status</th><th className="text-right px-3 py-2">Actions</th></tr>
                 </thead>
                 <tbody>
                   {grouped[period].map(p => (
@@ -1731,9 +1731,30 @@ function PrizeLabelsPanel({ adminEmployeeId }: { adminEmployeeId: string }) {
                       <td className="px-3 py-2 font-bold">#{p.rank}</td>
                       <td className="px-3 py-2 text-base">{p.icon ?? "—"}</td>
                       <td className="px-3 py-2 font-semibold">{p.label}</td>
+                      {period === "weekly" && (
+                        <td className="px-3 py-2 text-[11px] text-muted-foreground">
+                          {(() => {
+                            const pt = p.period_type as string;
+                            if (pt === "weekly") return <span className="text-[color:var(--primary-glow)]">All Weeks</span>;
+                            const key = pt.replace(/^weekly_/, "");
+                            return weekLabelByKey.get(key) ?? key;
+                          })()}
+                        </td>
+                      )}
                       <td className="px-3 py-2">{p.active ? <span className="text-[color:var(--success)] font-bold">Active</span> : <span className="text-muted-foreground">Inactive</span>}</td>
                       <td className="px-3 py-2 text-right space-x-2">
-                        <button onClick={() => { setEditing(p.id); setForm(p); }} className="px-2 py-1 rounded text-[11px] border border-white/15">Edit</button>
+                        <button onClick={() => {
+                          setEditing(p.id);
+                          setForm(p);
+                          const pt = p.period_type as string;
+                          if (pt.startsWith("weekly_")) {
+                            setCategory("weekly_specific");
+                            setWeekKey(pt.replace(/^weekly_/, ""));
+                          } else {
+                            setCategory(pt);
+                            setWeekKey("");
+                          }
+                        }} className="px-2 py-1 rounded text-[11px] border border-white/15">Edit</button>
                         <button onClick={async () => {
                           if (!window.confirm(`Delete prize "${p.label}"?`)) return;
                           try { await delFn({ data: { adminEmployeeId, id: p.id } }); toast.success("Deleted"); await qc.invalidateQueries({ queryKey: ["admin-prize-labels"] }); await qc.invalidateQueries({ queryKey: ["prize-labels"] }); }
