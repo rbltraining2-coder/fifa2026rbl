@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getPredictionWindow } from "@/lib/predictionWindow";
 import { savePrediction } from "@/lib/predictions.functions";
+import TransactionSuccess from "./TransactionSuccess";
 
 type Winner = "home" | "draw" | "away";
 
@@ -24,6 +25,7 @@ export default function PredictionSheet({
   const [hg, setHg] = useState(1);
   const [ag, setAg] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [existing, setExisting] = useState<{
     winner: Winner | null;
     hg: number | null;
@@ -86,9 +88,8 @@ export default function PredictionSheet({
       return;
     }
     setSaving(false);
-    toast.success("Prediction saved");
     qc.invalidateQueries({ queryKey: ["predictions"] });
-    onClose();
+    setShowSuccess(true);
   };
 
   const locked = match ? !getPredictionWindow(match.match_time).canPredict : false;
@@ -216,6 +217,14 @@ export default function PredictionSheet({
               )}
             </div>
           </motion.div>
+          {showSuccess && (
+            <TransactionSuccess
+              onComplete={() => {
+                setShowSuccess(false);
+                onClose();
+              }}
+            />
+          )}
         </>
       )}
     </AnimatePresence>
