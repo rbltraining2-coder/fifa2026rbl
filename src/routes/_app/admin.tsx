@@ -1629,28 +1629,48 @@ function PrizeLabelsPanel({ adminEmployeeId }: { adminEmployeeId: string }) {
   const listFn = useServerFn(listPrizeLabelsAdmin);
   const upsertFn = useServerFn(upsertPrizeLabel);
   const delFn = useServerFn(deletePrizeLabel);
+  const listWeeksFn = useServerFn(listWeeklyPeriodsAdmin);
 
   const q = useQuery({
     queryKey: ["admin-prize-labels"],
     queryFn: () => listFn({ data: { adminEmployeeId } }),
   });
+  const weeksQ = useQuery({
+    queryKey: ["admin-weekly-periods"],
+    queryFn: () => listWeeksFn({ data: { adminEmployeeId } }),
+  });
+  const weeks = weeksQ.data?.items ?? [];
+  const weekLabelByKey = useMemo(() => {
+    const m = new Map<string, string>();
+    weeks.forEach(w => m.set(w.period_key, w.period_label));
+    return m;
+  }, [weeks]);
 
   const empty: Partial<PrizeLabel> = { period_type: "daily", rank: 1, label: "", icon: "🎁", active: true };
   const [form, setForm] = useState<Partial<PrizeLabel>>(empty);
+  const [category, setCategory] = useState<string>("daily");
+  const [weekKey, setWeekKey] = useState<string>("");
   const [editing, setEditing] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const reset = () => { setForm(empty); setEditing(null); };
+  const reset = () => { setForm(empty); setEditing(null); setCategory("daily"); setWeekKey(""); };
 
   const save = async () => {
     if (!form.label?.trim()) { toast.error("Prize label is required"); return; }
+    let period_type: string;
+    if (category === "weekly_specific") {
+      if (!weekKey) { toast.error("Please select a specific week"); return; }
+      period_type = `weekly_${weekKey}`;
+    } else {
+      period_type = category;
+    }
     setSaving(true);
     try {
       await upsertFn({
         data: {
           adminEmployeeId,
           id: editing ?? undefined,
-          period_type: (form.period_type ?? "daily") as PrizeLabelPeriod,
+          period_type,
           rank: Number(form.rank) || 1,
           label: form.label!.trim(),
           icon: form.icon ?? null,
@@ -1667,8 +1687,12 @@ function PrizeLabelsPanel({ adminEmployeeId }: { adminEmployeeId: string }) {
   };
 
   const grouped = useMemo(() => {
-    const m: Record<PrizeLabelPeriod, PrizeLabel[]> = { daily: [], weekly: [], monthly: [], season: [] };
-    (q.data?.items ?? []).forEach(p => { m[p.period_type].push(p); });
+    const m: Record<"daily" | "weekly" | "monthly" | "season", PrizeLabel[]> = { daily: [], weekly: [], monthly: [], season: [] };
+    (q.data?.items ?? []).forEach(p => {
+      const pt = p.period_type as string;
+      if (pt === "daily" || pt === "monthly" || pt === "season") m[pt].push(p);
+      else if (pt === "weekly" || pt.startsWith("weekly_")) m.weekly.push(p);
+    });
     return m;
   }, [q.data]);
 
@@ -1683,13 +1707,24 @@ function PrizeLabelsPanel({ adminEmployeeId }: { adminEmployeeId: string }) {
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <label className="space-y-1"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Category</span>
-            <select value={form.period_type ?? "daily"} onChange={e => setForm(f => ({ ...f, period_type: e.target.value as PrizeLabelPeriod }))} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none">
+            <select value={category} onChange={e => setCategory(e.target.value)} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none">
               <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
+              <option value="weekly">Weekly (All Weeks)</option>
+              <option value="weekly_specific">Weekly (Specific Week)</option>
               <option value="monthly">Monthly</option>
               <option value="season">Season</option>
             </select>
           </label>
+          {category === "weekly_specific" && (
+            <label className="space-y-1"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Week</span>
+              <select value={weekKey} onChange={e => setWeekKey(e.target.value)} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none">
+                <option value="">Select a week…</option>
+                {weeks.map(w => (
+                  <option key={w.period_key} value={w.period_key}>{w.period_label}</option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="space-y-1"><span className="text-[10px] uppercase tracking-widest text-muted-foreground">Rank</span>
             <input type="number" min={1} max={100} value={form.rank ?? 1} onChange={e => setForm(f => ({ ...f, rank: Number(e.target.value) }))} className="w-full rounded-lg px-3 py-2 text-sm bg-black/40 border border-white/10 outline-none" />
           </label>
