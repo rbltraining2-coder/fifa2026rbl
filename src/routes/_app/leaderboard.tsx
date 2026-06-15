@@ -545,7 +545,7 @@ function MatchLeaderboardList({ currentUserId }: MatchLeaderboardListProps) {
 
                     {m.rest.length > 0 ? (
                       <ul className="space-y-2">
-                        {m.rest.map((p) => {
+                        {m.rest.slice(0, 20).map((p) => {
                           const mine = p.user_id === currentUserId;
                           return (
                             <li
