@@ -44,6 +44,7 @@ import {
   upsertPrizeLabel,
   deletePrizeLabel,
   listPrizeLabelsAdmin,
+  listWeeklyPeriodsAdmin,
   type PrizeLabel,
   type PrizeLabelPeriod,
 } from "@/lib/content.functions";
