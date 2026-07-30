@@ -47,6 +47,7 @@ import {
   listWeeklyPeriodsAdmin,
   listHiddenPeriodsAdmin,
   setPeriodHidden,
+  listDailyPeriodsAdmin,
   type PrizeLabel,
   type PrizeLabelPeriod,
 } from "@/lib/content.functions";
