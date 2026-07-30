@@ -189,6 +189,7 @@ function RewardsPage() {
   const periods = useMemo(() => {
     const map = new Map<string, RewardRow[]>();
     (rows ?? []).forEach((r) => {
+      if (hiddenPeriods?.has(`${r.period_type}:${r.period_key}`)) return;
       const arr = map.get(r.period_key) ?? [];
       arr.push(r);
       map.set(r.period_key, arr);
@@ -219,7 +220,7 @@ function RewardsPage() {
       );
       return { key, label: items[0].period_label, items: ranked };
     });
-  }, [rows, tab, periodStatsSource, nameMap]);
+  }, [rows, tab, periodStatsSource, nameMap, hiddenPeriods]);
 
   const todayWinners = useMemo(() => {
     if (tab !== "daily") return null;
