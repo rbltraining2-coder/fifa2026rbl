@@ -45,6 +45,8 @@ import {
   deletePrizeLabel,
   listPrizeLabelsAdmin,
   listWeeklyPeriodsAdmin,
+  listHiddenPeriodsAdmin,
+  setPeriodHidden,
   type PrizeLabel,
   type PrizeLabelPeriod,
 } from "@/lib/content.functions";
@@ -864,6 +866,7 @@ function AdminPage() {
       {tab === "rewards" && profile && (
         <div className="space-y-6">
           <PrizeLabelsPanel adminEmployeeId={profile.employee_id} />
+          <HiddenWeeklyWinnersPanel adminEmployeeId={profile.employee_id} />
           <RewardsManagementPanel adminEmployeeId={profile.employee_id} />
         </div>
       )}
@@ -2072,6 +2075,95 @@ function EditMatchSection({ adminEmployeeId }: { adminEmployeeId: string }) {
             {saving ? "Saving…" : "Save Changes"}
           </button>
         </>
+      )}
+    </section>
+  );
+}
+
+function HiddenWeeklyWinnersPanel({ adminEmployeeId }: { adminEmployeeId: string }) {
+  const qc = useQueryClient();
+  const listWeeksFn = useServerFn(listWeeklyPeriodsAdmin);
+  const listHiddenFn = useServerFn(listHiddenPeriodsAdmin);
+  const setHiddenFn = useServerFn(setPeriodHidden);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const weeksQ = useQuery({
+    queryKey: ["admin-weekly-periods"],
+    queryFn: () => listWeeksFn({ data: { adminEmployeeId } }),
+  });
+  const hiddenQ = useQuery({
+    queryKey: ["admin-hidden-periods"],
+    queryFn: () => listHiddenFn({ data: { adminEmployeeId } }),
+  });
+
+  const hiddenSet = useMemo(
+    () =>
+      new Set(
+        (hiddenQ.data?.items ?? [])
+          .filter((h) => h.period_type === "weekly")
+          .map((h) => h.period_key),
+      ),
+    [hiddenQ.data],
+  );
+
+  const toggle = async (period_key: string, hide: boolean) => {
+    setBusy(period_key);
+    try {
+      await setHiddenFn({
+        data: { adminEmployeeId, period_type: "weekly", period_key, hidden: hide },
+      });
+      toast.success(hide ? "Week hidden from Rewards" : "Week is now visible");
+      await qc.invalidateQueries({ queryKey: ["admin-hidden-periods"] });
+      await qc.invalidateQueries({ queryKey: ["hidden-reward-periods"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Update failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const weeks = weeksQ.data?.items ?? [];
+
+  return (
+    <section className="glossy-card p-5">
+      <h3 className="text-sm font-black uppercase tracking-wider mb-1">
+        Weekly Winners Visibility
+      </h3>
+      <p className="text-xs text-muted-foreground mb-4">
+        Hide a week's winners from the public Rewards page, and unhide it any time.
+      </p>
+
+      {weeksQ.isLoading || hiddenQ.isLoading ? (
+        <p className="text-xs text-muted-foreground">Loading weeks…</p>
+      ) : weeks.length === 0 ? (
+        <p className="text-xs text-muted-foreground">No weekly periods computed yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {weeks.map((w) => {
+            const hidden = hiddenSet.has(w.period_key);
+            return (
+              <div
+                key={w.period_key}
+                className="flex items-center justify-between gap-3 rounded-lg border border-border/60 px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-bold truncate">{w.period_label}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {hidden ? "Hidden from users" : "Visible to users"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={busy === w.period_key}
+                  onClick={() => toggle(w.period_key, !hidden)}
+                  className="text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-md border border-border/70 hover:bg-muted/40 disabled:opacity-50 shrink-0"
+                >
+                  {busy === w.period_key ? "…" : hidden ? "Unhide" : "Hide"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
       )}
     </section>
   );

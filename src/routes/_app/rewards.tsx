@@ -121,6 +121,21 @@ function RewardsPage() {
     },
   });
 
+  const { data: hiddenPeriods } = useQuery({
+    queryKey: ["hidden-reward-periods"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("hidden_reward_periods")
+        .select("period_type, period_key");
+      if (error) throw error;
+      return new Set(
+        ((data ?? []) as { period_type: string; period_key: string }[]).map(
+          (r) => `${r.period_type}:${r.period_key}`,
+        ),
+      );
+    },
+  });
+
   // Resolve user-friendly names for the listed user_ids.
   const allUserIds = useMemo(
     () => Array.from(new Set((rows ?? []).map((r) => r.user_id))),
@@ -174,6 +189,7 @@ function RewardsPage() {
   const periods = useMemo(() => {
     const map = new Map<string, RewardRow[]>();
     (rows ?? []).forEach((r) => {
+      if (hiddenPeriods?.has(`${r.period_type}:${r.period_key}`)) return;
       const arr = map.get(r.period_key) ?? [];
       arr.push(r);
       map.set(r.period_key, arr);
@@ -204,7 +220,7 @@ function RewardsPage() {
       );
       return { key, label: items[0].period_label, items: ranked };
     });
-  }, [rows, tab, periodStatsSource, nameMap]);
+  }, [rows, tab, periodStatsSource, nameMap, hiddenPeriods]);
 
   const todayWinners = useMemo(() => {
     if (tab !== "daily") return null;
