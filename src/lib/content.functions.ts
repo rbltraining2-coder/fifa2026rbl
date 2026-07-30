@@ -254,6 +254,27 @@ export const listWeeklyPeriodsAdmin = createServerFn({ method: "POST" })
     }
     return { items };
   });
+
+export const listDailyPeriodsAdmin = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ adminEmployeeId: adminSchema }).parse(d))
+  .handler(async ({ data }) => {
+    await assertAdmin(data.adminEmployeeId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await (supabaseAdmin as any)
+      .from("reward_winners")
+      .select("period_key, period_label, period_start")
+      .eq("period_type", "daily")
+      .order("period_start", { ascending: false });
+    if (error) throw new Error(error.message);
+    const seen = new Set<string>();
+    const items: { period_key: string; period_label: string }[] = [];
+    for (const r of (rows ?? []) as Array<{ period_key: string; period_label: string }>) {
+      if (seen.has(r.period_key)) continue;
+      seen.add(r.period_key);
+      items.push({ period_key: r.period_key, period_label: r.period_label });
+    }
+    return { items };
+  });
 /* ========== Hidden Reward Periods (hide/unhide weekly winners) ========== */
 
 export type HiddenPeriod = { period_type: string; period_key: string };

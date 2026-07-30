@@ -239,6 +239,9 @@ function RewardsPage() {
         year: "numeric",
       });
     const targetDateString = fmt(mostRecent.match_time);
+    const keyOf = (iso: string) =>
+      new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+    if (hiddenPeriods?.has(`daily:${keyOf(mostRecent.match_time)}`)) return null;
     const targetMatches = allMatches.filter(
       (m) => fmt(m.match_time) === targetDateString,
     );
@@ -269,7 +272,7 @@ function RewardsPage() {
     );
     const top3 = ranked.filter((r) => r.rank <= 3);
     return { dateLabel: targetDateString, items: top3 };
-  }, [tab, periodStatsSource, nameMap]);
+  }, [tab, periodStatsSource, nameMap, hiddenPeriods]);
 
   return (
     <div className="space-y-5">
