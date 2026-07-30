@@ -864,6 +864,7 @@ function AdminPage() {
       {tab === "rewards" && profile && (
         <div className="space-y-6">
           <PrizeLabelsPanel adminEmployeeId={profile.employee_id} />
+          <HiddenWeeklyWinnersPanel adminEmployeeId={profile.employee_id} />
           <RewardsManagementPanel adminEmployeeId={profile.employee_id} />
         </div>
       )}
