@@ -867,7 +867,20 @@ function AdminPage() {
       {tab === "rewards" && profile && (
         <div className="space-y-6">
           <PrizeLabelsPanel adminEmployeeId={profile.employee_id} />
-          <HiddenWeeklyWinnersPanel adminEmployeeId={profile.employee_id} />
+          <HiddenPeriodsPanel
+            adminEmployeeId={profile.employee_id}
+            periodType="weekly"
+            title="Weekly Winners Visibility"
+            description="Hide a week's winners from the public Rewards page, and unhide it any time."
+            emptyText="No weekly periods computed yet."
+          />
+          <HiddenPeriodsPanel
+            adminEmployeeId={profile.employee_id}
+            periodType="daily"
+            title="Daily Winners Visibility"
+            description="Hide a day's winners from the public Rewards page, and unhide it any time."
+            emptyText="No daily periods computed yet."
+          />
           <RewardsManagementPanel adminEmployeeId={profile.employee_id} />
         </div>
       )}
