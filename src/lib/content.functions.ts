@@ -254,3 +254,51 @@ export const listWeeklyPeriodsAdmin = createServerFn({ method: "POST" })
     }
     return { items };
   });
+/* ========== Hidden Reward Periods (hide/unhide weekly winners) ========== */
+
+export type HiddenPeriod = { period_type: string; period_key: string };
+
+export const listHiddenPeriodsAdmin = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ adminEmployeeId: adminSchema }).parse(d))
+  .handler(async ({ data }) => {
+    await assertAdmin(data.adminEmployeeId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await (supabaseAdmin as any)
+      .from("hidden_reward_periods")
+      .select("period_type, period_key");
+    if (error) throw new Error(error.message);
+    return { items: (rows ?? []) as HiddenPeriod[] };
+  });
+
+export const setPeriodHidden = createServerFn({ method: "POST" })
+  .inputValidator((d) =>
+    z
+      .object({
+        adminEmployeeId: adminSchema,
+        period_type: z.string().min(1).max(64),
+        period_key: z.string().min(1).max(64),
+        hidden: z.boolean(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    await assertAdmin(data.adminEmployeeId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (data.hidden) {
+      const { error } = await (supabaseAdmin as any)
+        .from("hidden_reward_periods")
+        .upsert(
+          { period_type: data.period_type, period_key: data.period_key },
+          { onConflict: "period_type,period_key" },
+        );
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await (supabaseAdmin as any)
+        .from("hidden_reward_periods")
+        .delete()
+        .eq("period_type", data.period_type)
+        .eq("period_key", data.period_key);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true, hidden: data.hidden };
+  });
