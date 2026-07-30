@@ -45,6 +45,8 @@ import {
   deletePrizeLabel,
   listPrizeLabelsAdmin,
   listWeeklyPeriodsAdmin,
+  listHiddenPeriodsAdmin,
+  setPeriodHidden,
   type PrizeLabel,
   type PrizeLabelPeriod,
 } from "@/lib/content.functions";
