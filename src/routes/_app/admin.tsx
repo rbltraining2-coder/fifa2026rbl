@@ -2081,16 +2081,32 @@ function EditMatchSection({ adminEmployeeId }: { adminEmployeeId: string }) {
   );
 }
 
-function HiddenWeeklyWinnersPanel({ adminEmployeeId }: { adminEmployeeId: string }) {
+function HiddenPeriodsPanel({
+  adminEmployeeId,
+  periodType,
+  title,
+  description,
+  emptyText,
+}: {
+  adminEmployeeId: string;
+  periodType: "weekly" | "daily";
+  title: string;
+  description: string;
+  emptyText: string;
+}) {
   const qc = useQueryClient();
   const listWeeksFn = useServerFn(listWeeklyPeriodsAdmin);
+  const listDaysFn = useServerFn(listDailyPeriodsAdmin);
   const listHiddenFn = useServerFn(listHiddenPeriodsAdmin);
   const setHiddenFn = useServerFn(setPeriodHidden);
   const [busy, setBusy] = useState<string | null>(null);
 
   const weeksQ = useQuery({
-    queryKey: ["admin-weekly-periods"],
-    queryFn: () => listWeeksFn({ data: { adminEmployeeId } }),
+    queryKey: ["admin-reward-periods", periodType],
+    queryFn: () =>
+      periodType === "weekly"
+        ? listWeeksFn({ data: { adminEmployeeId } })
+        : listDaysFn({ data: { adminEmployeeId } }),
   });
   const hiddenQ = useQuery({
     queryKey: ["admin-hidden-periods"],
@@ -2101,19 +2117,19 @@ function HiddenWeeklyWinnersPanel({ adminEmployeeId }: { adminEmployeeId: string
     () =>
       new Set(
         (hiddenQ.data?.items ?? [])
-          .filter((h) => h.period_type === "weekly")
+          .filter((h) => h.period_type === periodType)
           .map((h) => h.period_key),
       ),
-    [hiddenQ.data],
+    [hiddenQ.data, periodType],
   );
 
   const toggle = async (period_key: string, hide: boolean) => {
     setBusy(period_key);
     try {
       await setHiddenFn({
-        data: { adminEmployeeId, period_type: "weekly", period_key, hidden: hide },
+        data: { adminEmployeeId, period_type: periodType, period_key, hidden: hide },
       });
-      toast.success(hide ? "Week hidden from Rewards" : "Week is now visible");
+      toast.success(hide ? "Hidden from Rewards" : "Now visible to users");
       await qc.invalidateQueries({ queryKey: ["admin-hidden-periods"] });
       await qc.invalidateQueries({ queryKey: ["hidden-reward-periods"] });
     } catch (e) {
@@ -2128,18 +2144,18 @@ function HiddenWeeklyWinnersPanel({ adminEmployeeId }: { adminEmployeeId: string
   return (
     <section className="glossy-card p-5">
       <h3 className="text-sm font-black uppercase tracking-wider mb-1">
-        Weekly Winners Visibility
+        {title}
       </h3>
       <p className="text-xs text-muted-foreground mb-4">
-        Hide a week's winners from the public Rewards page, and unhide it any time.
+        {description}
       </p>
 
       {weeksQ.isLoading || hiddenQ.isLoading ? (
-        <p className="text-xs text-muted-foreground">Loading weeks…</p>
+        <p className="text-xs text-muted-foreground">Loading…</p>
       ) : weeks.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No weekly periods computed yet.</p>
+        <p className="text-xs text-muted-foreground">{emptyText}</p>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
           {weeks.map((w) => {
             const hidden = hiddenSet.has(w.period_key);
             return (
