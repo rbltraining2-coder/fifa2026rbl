@@ -80,6 +80,30 @@ export type Database = {
         }
         Relationships: []
       }
+      hidden_reward_periods: {
+        Row: {
+          created_at: string
+          id: string
+          period_key: string
+          period_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          period_key: string
+          period_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          period_key?: string
+          period_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           api_id: string | null
