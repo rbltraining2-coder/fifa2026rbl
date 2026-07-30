@@ -121,6 +121,21 @@ function RewardsPage() {
     },
   });
 
+  const { data: hiddenPeriods } = useQuery({
+    queryKey: ["hidden-reward-periods"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("hidden_reward_periods")
+        .select("period_type, period_key");
+      if (error) throw error;
+      return new Set(
+        ((data ?? []) as { period_type: string; period_key: string }[]).map(
+          (r) => `${r.period_type}:${r.period_key}`,
+        ),
+      );
+    },
+  });
+
   // Resolve user-friendly names for the listed user_ids.
   const allUserIds = useMemo(
     () => Array.from(new Set((rows ?? []).map((r) => r.user_id))),
